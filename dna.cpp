@@ -1,6 +1,4 @@
 #include "dna.hpp"
-#include <vector>
-#include <unordered_map>
 #include <random>
 
 
@@ -8,11 +6,6 @@ std::random_device random_device;
 std::mt19937 random_engine(random_device());
 std::bernoulli_distribution MUTATION_RATE = std::bernoulli_distribution(0.05);
 std::uniform_int_distribution<int> MUTATION_AMOUNT(-1, 1);
-enum Gene {
-    SPEED, STRENGTH, FERTILITY,
-    NATURE, LIFESPAN, ATTACK,
-    DEFENSE, VISION
-};
 enum Nature {AGGRESSIVE=1, PASSIVE=2, NEUTRAL=3}; // Neutral won't attack and won't defend
 enum Speed {SLOW=1, MEDIUM=2, FAST=3};
 enum Strength {WEAK=1, MODERATE=2, STRONG=3};
@@ -36,116 +29,104 @@ std::unordered_map<Gene, std::vector<int>> possible_random_allele_values = {
 };
 
 
-class Allele {
-public:
-    Gene name;
-    int value;
+Allele::Allele(Gene name_, int value_): name(name_), value(value_) {}
+Allele::Allele(Gene name_): name(name_), value(default_allele_value.at(name_)) {}
 
-    Allele(Gene name_, int value_): name(name_), value(value_) {}
-    Allele(Gene name_): name(name_), value(default_allele_value.at(name_)) {}
+void Allele::rational_mutate() {
+    value += name == Gene::LIFESPAN ? MUTATION_AMOUNT(random_engine)*50 : MUTATION_AMOUNT(random_engine);
+    value = std::abs(value);
+}
+void Allele::random_mutate() {
+    std::vector<int>* possible_alleles = &possible_random_allele_values.at(name);
+    value = possible_alleles->at(std::rand() % possible_alleles->size());
+}
 
-    void rational_mutate() {
-        value += name == Gene::LIFESPAN ? MUTATION_AMOUNT(random_engine)*50 : MUTATION_AMOUNT(random_engine);
-        value = std::abs(value);
-    }
-    void random_mutate() {
-        std::vector<int>* possible_alleles = &possible_random_allele_values.at(name);
-        value = possible_alleles->at(std::rand() % possible_alleles->size());
-    }
+Allele* Allele::combine(const Allele* other) const {
+    Allele* new_allele = new Allele(name);
+    new_allele->value = rand() % 2 ? value : other->value;
+    return new_allele;
+}
 
-    Allele* combine(const Allele* other) const {
-        Allele* new_allele = new Allele(name);
-        new_allele->value = rand() % 2 ? value : other->value;
-        return new_allele;
-    }
-
-    bool operator==(const Allele& other) const {
-        return name == other.name && value == other.value;
-    }
-    bool operator!=(const Allele& other) const {
-        return !(*this == other);
-    }
-};
+bool Allele::operator==(const Allele& other) const {
+    return name == other.name && value == other.value;
+}
+bool Allele::operator!=(const Allele& other) const {
+    return !(*this == other);
+}
 
 
-class DNA {
-public:
-    std::vector<Allele*> alleles;
-    std::unordered_map<Gene, Allele*> genes;
+DNA::DNA(std::vector<Allele*> alleles_): alleles(alleles_) {
+    for (auto allele : alleles) {
+        genes[allele->name] = allele;
+    }
+}
+DNA::DNA(std::unordered_map<Gene, Allele*> genes_): genes(genes_) {
+    for (std::pair<Gene, Allele*> gene : genes) {
+        alleles.push_back(gene.second);
+    }
+}
+DNA::DNA(std::vector<Gene> genes_) {
+    for (Gene gene : genes_) {
+        Allele* allele = new Allele(gene);
+        alleles.push_back(allele);
+        genes[gene] = allele;
+    }
+}
+DNA::DNA(std::unordered_map<Gene, int> genes_) {
+    for (std::pair<Gene, int> gene : genes_) {
+        Allele* allele = new Allele(gene.first, gene.second);
+        alleles.push_back(allele);
+        genes[gene.first] = allele;
+    }
+}
+DNA::DNA() {
+    for (std::pair<Gene, int> gene : default_allele_value) {
+        Allele* allele = new Allele(gene.first, gene.second);
+        alleles.push_back(allele);
+        genes[gene.first] = allele;
+    }
+}
+DNA::~DNA() {
+    for (Allele* allele : alleles) {
+        delete allele;
+    }
+}
 
-    DNA(std::vector<Allele*> alleles_): alleles(alleles_) {
-        for (auto allele : alleles) {
-            genes[allele->name] = allele;
+void DNA::rational_mutate() {
+    for (Allele* allele : alleles) {
+        if (MUTATION_RATE(random_engine)) {
+            allele->rational_mutate();
         }
     }
-    DNA(std::unordered_map<Gene, Allele*> genes_): genes(genes_) {
-        for (std::pair<Gene, Allele*> gene : genes) {
-            alleles.push_back(gene.second);
+}
+void DNA::random_mutate() {
+    for (Allele* allele : alleles) {
+        if (MUTATION_RATE(random_engine)) {
+            allele->random_mutate();
         }
     }
-    DNA(std::vector<Gene> genes_) {
-        for (Gene gene : genes_) {
-            Allele* allele = new Allele(gene);
-            alleles.push_back(allele);
-            genes[gene] = allele;
-        }
-    }
-    DNA(std::unordered_map<Gene, int> genes_) {
-        for (std::pair<Gene, int> gene : genes_) {
-            Allele* allele = new Allele(gene.first, gene.second);
-            alleles.push_back(allele);
-            genes[gene.first] = allele;
-        }
-    }
-    DNA() {
-        for (std::pair<Gene, int> gene : default_allele_value) {
-            Allele* allele = new Allele(gene.first, gene.second);
-            alleles.push_back(allele);
-            genes[gene.first] = allele;
-        }
-    }
-    ~DNA() {
-        for (Allele* allele : alleles) {
-            delete allele;
-        }
-    }
+}
 
-    void rational_mutate() {
-        for (Allele* allele : alleles) {
-            if (MUTATION_RATE(random_engine)) {
-                allele->rational_mutate();
-            }
-        }
+DNA* DNA::combine(const DNA* other) const {
+    std::vector<Allele*> new_alleles;
+    for (Allele* allele : alleles) {
+        new_alleles.push_back(
+            allele->combine(
+                other->genes.at(allele->name)
+            )
+        );
     }
-    void random_mutate() {
-        for (Allele* allele : alleles) {
-            if (MUTATION_RATE(random_engine)) {
-                allele->random_mutate();
-            }
-        }
-    }
+    return new DNA(new_alleles);
+}
 
-    DNA* combine(const DNA* other) const {
-        std::vector<Allele*> new_alleles;
-        for (Allele* allele : alleles) {
-            new_alleles.push_back(
-                allele->combine(
-                    other->genes.at(allele->name)
-                )
-            );
+bool DNA::operator==(const DNA& other) const {
+    for (Allele* allele : alleles) {
+        if (*allele != *other.genes.at(allele->name)) {
+            return false;
         }
-        return new DNA(new_alleles);
     }
-
-    bool operator==(const DNA& other) const {
-        for (Allele* allele : alleles) {
-            if (*allele != *other.genes.at(allele->name)) {
-                return false;
-            }
-        }
-        return true;
-    }
-    bool operator!=(const DNA& other) const {
-        return !(*this == other);
-    }
-};
+    return true;
+}
+bool DNA::operator!=(const DNA& other) const {
+    return !(*this == other);
+}
