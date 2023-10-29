@@ -27,7 +27,7 @@ public:
     ~Organism();
 
     void meet(Organism*); // Can lead to breeding, attacking, defending, or nothing
-    void breed(Organism*); // Only a certain probability of conception, based on delta age
+    std::vector<Organism*> breed(Organism*); // Returns the children, they have to be placed in the sista::Field
     void attack(Organism*);
     void defend(Organism*);
 

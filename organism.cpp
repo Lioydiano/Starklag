@@ -23,6 +23,27 @@ Organism::~Organism() {
     delete dna;
 }
 
+std::vector<Organism*> Organism::breed(Organism* other) {
+    // Only the youngest organism can breed
+    if (stats.age > other->stats.age) {
+        other->breed(this);
+    }
+    std::vector<Organism*> children;
+    for (int i = 0; i < dna->genes.at(Gene::FERTILITY)->value; i++) {
+        // Combine the DNA of the two organisms
+        DNA* new_dna = dna->combine(other->dna);
+        // Create a new organism with the new DNA
+        Organism* child = new Organism(
+            symbol, coordinates, settings, new_dna,
+            {0, stats.generation + 1, {this, other}, {}}
+        );
+        // Add the child to the parents' children
+        stats.children.push_back(child);
+        other->stats.children.push_back(child);
+        children.push_back(child);
+    }
+    return children;
+}
 
 bool Organism::breedable(const Organism* other) const {
     DNA* other_dna = other->dna;
