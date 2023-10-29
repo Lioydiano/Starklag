@@ -3,6 +3,7 @@
 #include "dna.hpp"
 
 
+class Organism;
 struct Statistics {
     int age;
     int generation;
