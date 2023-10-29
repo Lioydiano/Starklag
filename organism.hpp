@@ -12,7 +12,10 @@ struct Statistics {
 
 
 class Organism: public sista::Pawn {
+    static inline unsigned id_counter = 0;
+
 public:
+    unsigned id;
     Statistics stats;
     DNA* dna; // DNA of the organism
     int health; // Health of the organism [starting value deduced from DNA, strength]
@@ -26,4 +29,6 @@ public:
     void breed(Organism*); // Only a certain probability of conception, based on delta age
     void attack(Organism*);
     void defend(Organism*);
+
+    bool breedable(const Organism*) const; // Check if the two organisms can breed [depends on DNA]
 }; // Doesn't inherit from sista::Pawn, which will be put in attributes
