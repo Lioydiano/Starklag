@@ -106,6 +106,9 @@ void Organism::move() {
 }
 
 void Organism::meet(Entity* other) {
+    if (other == nullptr) {
+        return;
+    }
     if (other->is_food) {
         // std::cout << "It's food!" << std::endl;
         this->eat((Food*)other);
@@ -252,9 +255,26 @@ void printDNA(DNA* dna) {
 }
 
 bool Organism::breedable(const Organism* other) const {
-    if (stats.parents[0] == other->stats.parents[0] || stats.parents[0] == other->stats.parents[1] || stats.parents[1] == other->stats.parents[0] || stats.parents[1] == other->stats.parents[1]) {
-        if (stats.parents[0] != nullptr || stats.parents[1] != nullptr)
-            return false; // Can't breed with a sibling
+    if (other == nullptr) {
+        return false;
+    }
+    if (this->id == other->id) {
+        return false;
+    }
+    if ((stats.parents[0] == nullptr && stats.parents[1] == nullptr) || (other->stats.parents[0] == nullptr && other->stats.parents[1] == nullptr)) {
+        // ...
+    } else {
+        // No incest
+        if (stats.parents[0] == other->stats.parents[0] || stats.parents[1] == other->stats.parents[1]) {
+            return false;
+        }
+        // No parents
+        if (stats.parents[0]->id == other->id || stats.parents[1]->id == other->id) {
+            return false;
+        }
+        if (other->stats.parents[0]->id == this->id || other->stats.parents[1]->id == this->id) {
+            return false;
+        }
     }
     DNA* other_dna = other->dna;
     // printDNA(dna);

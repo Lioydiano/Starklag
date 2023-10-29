@@ -25,7 +25,7 @@ int main() {
     field = &field_;
 
     // Create the organisms
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < 25; i++) {
         Organism* organism;
         std::cout << "Debug 0" << std::endl;
         char symbol = 'A' + random_engine() % 26;
@@ -72,10 +72,11 @@ int main() {
     sista::clearScreen();
     field->print(border);
 
-    while (true) {
+    for (int _ = 0; _ < 1000; _++) {
         for (int i = 0; i < 10; i++) {
             // All the organisms may move
-            for (Organism* organism : Organism::organisms) {
+            for (std::vector<Organism*>::iterator it = Organism::organisms.begin(); it != Organism::organisms.end(); it++) {
+                Organism* organism = *it;
                 if (organism == nullptr) {
                     continue;
                 }
@@ -96,19 +97,21 @@ int main() {
                 organism->move();
             }
             // All the organisms may meet
-            for (Organism* organism : Organism::organisms) {
-                if (organism == nullptr) {
+            for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
+                void* organism_ = Organism::organisms[o];
+                if (organism_ == nullptr) {
                     continue;
                 }
+                Organism* organism = (Organism*)organism_;
                 if (isDead(organism)) {
                     continue;
                 }
-                sista::Coordinates neighbor_coordinates[4] = {
-                    {organism->getCoordinates().x, organism->getCoordinates().y-1},
-                    {organism->getCoordinates().x, organism->getCoordinates().y+1},
-                    {organism->getCoordinates().x-1, organism->getCoordinates().y},
-                    {organism->getCoordinates().x+1, organism->getCoordinates().y}
-                };
+                sista::Coordinates coordinates = organism->getCoordinates();
+                sista::Coordinates neighbor_coordinates[4];
+                neighbor_coordinates[0] = sista::Coordinates(coordinates.x, coordinates.y-1);
+                neighbor_coordinates[1] = sista::Coordinates(coordinates.x, coordinates.y+1);
+                neighbor_coordinates[2] = sista::Coordinates(coordinates.x-1, coordinates.y);
+                neighbor_coordinates[3] = sista::Coordinates(coordinates.x+1, coordinates.y);
                 for (sista::Coordinates coordinates : neighbor_coordinates) {
                     if (field->isOutOfBounds(coordinates)) {
                         continue;
@@ -131,15 +134,15 @@ int main() {
                 if (isDead(organism)) {
                     continue;
                 }
-                // if (MUTATION_RATE(random_engine))
-                //     organism->dna->rational_mutate();
+                if (MUTATION_RATE(random_engine))
+                    organism->dna->rational_mutate();
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
-        // ANSI::reset();
-        // sista::clearScreen();
-        // ANSI::reset();
-        // field->print(border);
+        ANSI::reset();
+        sista::clearScreen();
+        ANSI::reset();
+        field->print(border);
     }
     for (Organism* organism : Organism::organisms) {
         delete organism;

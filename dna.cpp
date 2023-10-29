@@ -7,7 +7,7 @@ std::bernoulli_distribution MUTATION_RATE(0.05);
 std::uniform_int_distribution<int> MUTATION_AMOUNT(-1, 1);
 std::unordered_map<Gene, int> default_allele_value = {
     {SPEED, Speed::SLOW}, {STRENGTH, Strength::WEAK},
-    {FERTILITY, Fertility::MEDIAN}, {NATURE, Nature::PASSIVE},
+    {FERTILITY, Fertility::LOW}, {NATURE, Nature::PASSIVE},
     {LIFESPAN, LifeSpan::AVERAGE}, {ATTACK, 1}, {DEFENSE, 1},
     {VISION, Vision::NEAR}
 };
