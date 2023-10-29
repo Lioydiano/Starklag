@@ -3,17 +3,45 @@
 
 
 std::bernoulli_distribution breeding_probability(0.1);
+std::bernoulli_distribution attack_probability(0.1);
+sista::Field* field = nullptr;
+
+
+Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
+    sista::Pawn(symbol_, coordinates_, settings_) {
+    is_food = false;
+}
+Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, bool by_reference_):
+    sista::Pawn(symbol_, coordinates_, settings_, by_reference_) {
+    is_food = false;
+}
+Entity::~Entity() {}
+
+
+Food::Food(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
+    Entity(symbol_, coordinates_, settings_) {
+    is_food = true;
+    energy = random_engine() % 10 + 1;
+}
+Food::Food(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, bool by_reference_):
+    Entity(symbol_, coordinates_, settings_, by_reference_) {
+    is_food = true;
+    energy = random_engine() % 10 + 1;
+}
+Food::~Food() {}
 
 
 Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_, DNA* dna_, Statistics stats_):
-    sista::Pawn(symbol_, coordinates_, settings_), dna(dna_), stats(stats_) {
+    Entity(symbol_, coordinates_, settings_), dna(dna_), stats(stats_) {
+    Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = dna->genes.at(Gene::LIFESPAN)->value;
     this->id = id_counter++;
     stats.age = 0;
 }
 Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, DNA* dna_, Statistics stats_, bool by_reference_):
-    sista::Pawn(symbol_, coordinates_, settings_, by_reference_), dna(dna_), stats(stats_) {
+    Entity(symbol_, coordinates_, settings_, by_reference_), dna(dna_), stats(stats_) {
+    Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = dna->genes.at(Gene::LIFESPAN)->value;
     this->id = id_counter++;
@@ -23,10 +51,31 @@ Organism::~Organism() {
     delete dna;
 }
 
+void Organism::meet(Entity* other) {
+    if (other->is_food) {
+        this->eat((Food*)other);
+    } else {
+        this->meet((Organism*)other);
+    }
+}
+
+void Organism::meet(Organism* other) {
+    bool breedable_ = this->breedable(other);
+    if (breedable_) {
+        if (breeding_probability(random_engine)) {
+            this->breed(other);
+        }
+    } else {
+        if (attack_probability(random_engine)) {
+            this->attack(other);
+        }
+    }
+}
+
 std::vector<Organism*> Organism::breed(Organism* other) {
     // Only the youngest organism can breed
     if (stats.age > other->stats.age) {
-        other->breed(this);
+        return other->breed(this);
     }
     std::vector<Organism*> children;
     for (int i = 0; i < dna->genes.at(Gene::FERTILITY)->value; i++) {
@@ -34,7 +83,7 @@ std::vector<Organism*> Organism::breed(Organism* other) {
         DNA* new_dna = dna->combine(other->dna);
         // Create a new organism with the new DNA
         Organism* child = new Organism(
-            symbol, coordinates, settings, new_dna,
+            symbol, coordinates, settings, new_dna, // Coordinates will be changed later
             {0, stats.generation + 1, {this, other}, {}}
         );
         // Add the child to the parents' children
@@ -43,6 +92,65 @@ std::vector<Organism*> Organism::breed(Organism* other) {
         children.push_back(child);
     }
     return children;
+}
+
+void Organism::attack(Organism* other) {
+    // First we get the nature of the organisms
+    Nature this_nature = (Nature)dna->genes.at(Gene::NATURE)->value;
+    Nature other_nature = (Nature)other->dna->genes.at(Gene::NATURE)->value;
+    // Then we check if the attack is possible and if it is, we do it
+    if (this_nature == Nature::NEUTRAL) { // Won't attack
+        return;
+    } else if (this_nature == Nature::PASSIVE) { // May have provoked the other
+        if (other_nature == Nature::AGGRESSIVE) {
+            other->attack(this);
+            return;
+        }
+    } else if (this_nature == Nature::AGGRESSIVE) { // Will attack
+        int this_attack = dna->genes.at(Gene::ATTACK)->value;
+        int this_defense = dna->genes.at(Gene::DEFENSE)->value;
+        int other_defense = other->dna->genes.at(Gene::DEFENSE)->value;
+        int other_attack = other->dna->genes.at(Gene::ATTACK)->value;
+
+        if (other_nature == Nature::PASSIVE) { // Will only defend
+            int damage_done = std::max(this_attack - other_defense, 0);
+            int damage_taken = std::max(other_defense, 0);
+
+            health -= damage_taken;
+            other->health -= damage_done;
+        } else if (other_nature == Nature::AGGRESSIVE) { // Will both attack and defend
+            int damage_done = std::max(this_attack - other_defense, 0);
+            int damage_taken = std::max(other_attack - this_defense, 0);
+            damage_done += std::max(other_defense, 0);
+            damage_taken += std::max(this_defense, 0);
+
+            while (health > 0 && other->health > 0) {
+                health -= damage_taken;
+                other->health -= damage_done;
+            } // At least one of the two will be dead, they're fighting to the death
+        } else if (other_nature == Nature::NEUTRAL) { // Won't fight back
+            int damage_done = std::max(this_attack, 0);
+
+            other->health -= damage_done;
+        }
+        // Check if someone died
+        if (health <= 0)
+            dead_organisms.push_back(this);
+        if (other->health <= 0) {
+            dead_organisms.push_back(other);
+            if (other_nature != Nature::AGGRESSIVE) {
+                // Eat the other organism
+                health += other->dna->genes.at(Gene::STRENGTH)->value*5;
+            }
+        }
+    }
+}
+
+void Organism::eat(Food* food) {
+    health += food->energy;
+    health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
+    field->removePawn(food);
+    delete food;
 }
 
 bool Organism::breedable(const Organism* other) const {
