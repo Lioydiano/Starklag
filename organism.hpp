@@ -32,3 +32,7 @@ public:
 
     bool breedable(const Organism*) const; // Check if the two organisms can breed [depends on DNA]
 }; // Doesn't inherit from sista::Pawn, which will be put in attributes
+
+
+// Need to be defined in a .cpp file but otherwise it will throw a linker error
+extern std::bernoulli_distribution breeding_probability;

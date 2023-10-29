@@ -1,4 +1,5 @@
 #include "organism.hpp"
+std::bernoulli_distribution breeding_probability(0.1);
 
 
 Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_, DNA* dna_, Statistics stats_):
@@ -11,6 +12,7 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
     sista::Pawn(symbol_, coordinates_, settings_, by_reference_), dna(dna_), stats(stats_) {
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = dna->genes.at(Gene::LIFESPAN)->value;
+    this->id = id_counter++;
     stats.age = 0;
 }
 Organism::~Organism() {

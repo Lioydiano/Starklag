@@ -1,22 +1,15 @@
 #include "dna.hpp"
-#include <random>
 
 
 std::random_device random_device;
 std::mt19937 random_engine(random_device());
-std::bernoulli_distribution MUTATION_RATE = std::bernoulli_distribution(0.05);
+std::bernoulli_distribution MUTATION_RATE(0.05);
 std::uniform_int_distribution<int> MUTATION_AMOUNT(-1, 1);
-enum Nature {AGGRESSIVE=1, PASSIVE=2, NEUTRAL=3}; // Neutral won't attack and won't defend
-enum Speed {SLOW=1, MEDIUM=2, FAST=3};
-enum Strength {WEAK=1, MODERATE=2, STRONG=3};
-enum Fertility {LOW=1, MEDIAN=3, HIGH=5};
-enum LifeSpan {SHORT=1, AVERAGE=2, LONG=3}; // If more than LONG, then it's potentially immortal
-enum Vision {NEAR=1, CLEAR=3, FAR=5};
-
 std::unordered_map<Gene, int> default_allele_value = {
-    {SPEED, 1}, {STRENGTH, 1}, {FERTILITY, 1},
-    {NATURE, Nature::PASSIVE}, {LIFESPAN, 1},
-    {ATTACK, 1}, {DEFENSE, 1}, {VISION, 1}
+    {SPEED, Speed::SLOW}, {STRENGTH, Strength::WEAK},
+    {FERTILITY, Fertility::MEDIAN}, {NATURE, Nature::PASSIVE},
+    {LIFESPAN, LifeSpan::AVERAGE}, {ATTACK, 1}, {DEFENSE, 1},
+    {VISION, Vision::NEAR}
 };
 std::unordered_map<Gene, std::vector<int>> possible_random_allele_values = {
     {SPEED, {Speed::SLOW, Speed::MEDIUM, Speed::FAST}},
@@ -26,6 +19,10 @@ std::unordered_map<Gene, std::vector<int>> possible_random_allele_values = {
     {LIFESPAN, {LifeSpan::SHORT, LifeSpan::AVERAGE, LifeSpan::LONG}},
     {ATTACK, {1, 2, 3}}, {DEFENSE, {1, 2, 3}},
     {VISION, {Vision::NEAR, Vision::CLEAR, Vision::FAR}}
+};
+std::vector<Gene> genes = {
+    SPEED, STRENGTH, FERTILITY, NATURE,
+    LIFESPAN, ATTACK, DEFENSE, VISION
 };
 
 
