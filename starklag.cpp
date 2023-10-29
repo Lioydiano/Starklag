@@ -9,6 +9,24 @@ bool isDead(Organism* organism) {
     }
     return false;
 }
+bool isAsphyxiated(Organism* organism) {
+    sista::Coordinates coordinates = organism->getCoordinates();
+    sista::Coordinates neighbor_coordinates[4];
+    neighbor_coordinates[0] = sista::Coordinates(coordinates.x, coordinates.y-1);
+    neighbor_coordinates[1] = sista::Coordinates(coordinates.x, coordinates.y+1);
+    neighbor_coordinates[2] = sista::Coordinates(coordinates.x-1, coordinates.y);
+    neighbor_coordinates[3] = sista::Coordinates(coordinates.x+1, coordinates.y);
+    for (sista::Coordinates coordinates : neighbor_coordinates) {
+        if (field->isOutOfBounds(coordinates)) {
+            continue;
+        }
+        sista::Pawn* pawn = field->getPawn(coordinates);
+        if (pawn == nullptr) {
+            return false; // There is at least one free space
+        }
+    }
+    return true; // There is no free space
+}
 
 
 int main() {
@@ -23,6 +41,7 @@ int main() {
     field_.reset();
     field_.clear();
     field = &field_;
+    sista::Cursor cursor;
 
     // Create the organisms
     for (int i = 0; i < 25; i++) {
@@ -90,6 +109,11 @@ int main() {
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
+                // Check of asphyxiation
+                if (isAsphyxiated(organism)) {
+                    Organism::dead_organisms.push_back(organism);
+                    continue;
+                }
                 organism->stats.age++;
                 organism->left--;
                 if (organism->health < organism->dna->genes.at(Gene::STRENGTH)->value*5)
@@ -137,12 +161,34 @@ int main() {
                 if (MUTATION_RATE(random_engine))
                     organism->dna->rational_mutate();
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            ANSI::reset();
+            sista::clearScreen();
+            ANSI::reset();
+            field->print(border);
+            for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
+                void* organism_ = Organism::organisms[o];
+                if (organism_ == nullptr) {
+                    continue;
+                }
+                Organism* organism = (Organism*)organism_;
+                if (isDead(organism)) {
+                    continue;
+                }
+                cursor.set({2 + o, 60});
+                std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
+                std::cout << " DNA: ";
+                for (std::pair<Gene, Allele*> gene : organism->dna->genes) {
+                    std::cout << gene.first << ": " << gene.second->value << ", ";
+                }
+                std::cout << " {" << organism->getCoordinates().x << ", " << organism->getCoordinates().y << "}"; 
+            }
+            std::cout << std::flush;
         }
-        ANSI::reset();
-        sista::clearScreen();
-        ANSI::reset();
-        field->print(border);
+        // Clean the dead organisms
+        for (Organism* organism : Organism::dead_organisms) {
+            Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+        }
     }
     for (Organism* organism : Organism::organisms) {
         delete organism;

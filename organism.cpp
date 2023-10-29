@@ -137,6 +137,8 @@ void Organism::breed(Organism* other) {
     if (stats.age > other->stats.age) {
         return other->breed(this);
     }
+    if (!breedable(other))
+        return;
     std::vector<Organism*> children;
     for (int i = 0; i < dna->genes.at(Gene::FERTILITY)->value; i++) {
         // Combine the DNA of the two organisms
@@ -255,41 +257,29 @@ void printDNA(DNA* dna) {
 }
 
 bool Organism::breedable(const Organism* other) const {
-    if (other == nullptr) {
-        return false;
-    }
-    if (this->id == other->id) {
-        return false;
-    }
-    if ((stats.parents[0] == nullptr && stats.parents[1] == nullptr) || (other->stats.parents[0] == nullptr && other->stats.parents[1] == nullptr)) {
-        // ...
-    } else {
-        // No incest
-        if (stats.parents[0] == other->stats.parents[0] || stats.parents[1] == other->stats.parents[1]) {
-            return false;
-        }
-        // No parents
-        if (stats.parents[0]->id == other->id || stats.parents[1]->id == other->id) {
-            return false;
-        }
-        if (other->stats.parents[0]->id == this->id || other->stats.parents[1]->id == this->id) {
-            return false;
-        }
-    }
-    DNA* other_dna = other->dna;
-    // printDNA(dna);
-    // printDNA(other_dna);
-    int too_different_alleles = 0;
-    for (Allele* allele : dna->alleles) {
-        int other_value = other_dna->genes.at(allele->name)->value;
-        if (!std::max(allele->value, other_value)) {
-            too_different_alleles++;
-            continue;
-        }
-        int distance_coefficient = std::abs(allele->value - other_value) / std::max(allele->value, other_value);
-        if (distance_coefficient > 0.5) {
-            too_different_alleles++;
-        }
-    }
-    return too_different_alleles < (int)(dna->alleles.size() / 2);
+    // if (other == nullptr) {
+    //     return false;
+    // }
+    // if (this->id == other->id) {
+    //     return false;
+    // }
+    // if (this->symbol == other->symbol) {
+    //     return false; // Can't breed with the same generation and the same symbol
+    // }
+    return true;
+    // DNA* other_dna = other->dna;
+    // // printDNA(dna);
+    // // printDNA(other_dna);
+    // int too_different_alleles = 0;
+    // for (Allele* allele : dna->alleles) {
+    //     int other_value = other_dna->genes.at(allele->name)->value;
+    //     if (!std::max(allele->value, other_value)) {
+    //         continue;
+    //     }
+    //     int distance_coefficient = std::abs(allele->value - other_value) / std::max(allele->value, other_value);
+    //     if (distance_coefficient > 0.5) {
+    //         too_different_alleles++;
+    //     }
+    // }
+    // return too_different_alleles > 1;
 }

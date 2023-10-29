@@ -32,6 +32,8 @@ Allele::Allele(Gene name_): name(name_), value(default_allele_value.at(name_)) {
 void Allele::rational_mutate() {
     value += MUTATION_AMOUNT(random_engine);
     value = std::abs(value);
+    if (name == Gene::LIFESPAN)
+        value = std::max(value, (int)LifeSpan::SHORT);
 }
 void Allele::random_mutate() {
     std::vector<int>* possible_alleles = &possible_random_allele_values.at(name);
