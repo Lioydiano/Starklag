@@ -1,5 +1,8 @@
 #include "organism.hpp"
+#include "dna.cpp"
 #include <random>
+#include <chrono>
+#include <thread>
 
 
 std::bernoulli_distribution breeding_probability(0.1);
@@ -18,13 +21,9 @@ Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& se
 Entity::~Entity() {}
 
 
-Food::Food(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
-    Entity(symbol_, coordinates_, settings_) {
-    is_food = true;
-    energy = random_engine() % 10 + 1;
-}
-Food::Food(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, bool by_reference_):
-    Entity(symbol_, coordinates_, settings_, by_reference_) {
+Food::Food(sista::Coordinates coordinates_):
+    Entity('@', coordinates_, ANSI::Settings(ANSI::ForegroundColor::F_GREEN, ANSI::BackgroundColor::B_BLACK, ANSI::Attribute::BRIGHT)) {
+    foods.push_back(this);
     is_food = true;
     energy = random_engine() % 10 + 1;
 }
@@ -35,7 +34,7 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
     Entity(symbol_, coordinates_, settings_), dna(dna_), stats(stats_) {
     Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
-    left = dna->genes.at(Gene::LIFESPAN)->value;
+    left = std::pow(dna->genes.at(Gene::LIFESPAN)->value, 2)*100;
     this->id = id_counter++;
     stats.age = 0;
 }
@@ -51,10 +50,68 @@ Organism::~Organism() {
     delete dna;
 }
 
+void Organism::move() {
+    std::bernoulli_distribution moving_probability(0.2*dna->genes.at(Gene::SPEED)->value);
+    // std::cout << "Debug 0" << std::endl;
+    if (moving_probability(random_engine)) {
+        sista::Coordinates new_coordinates = coordinates;
+        // std::cout << "Debug 1" << std::endl;
+        do {
+            new_coordinates = coordinates;
+            switch (random_engine() % 4) {
+                case 0: {
+                    new_coordinates.x++;
+                    break;
+                }
+                case 1: {
+                    new_coordinates.x--;
+                    break;
+                }
+                case 2: {
+                    new_coordinates.y++;
+                    break;
+                }
+                case 3: {
+                    new_coordinates.y--;
+                    break;
+                }
+            }
+        } while (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates);
+        // std::cout << "Moving to {" << new_coordinates.y << ", " << new_coordinates.x << "}" << std::endl;
+        if (field->isOccupied(new_coordinates)) {
+            Entity* other = nullptr;
+            for (Food* food : Food::foods) {
+                if (food->getCoordinates() == new_coordinates) {
+                    other = (Entity*)food;
+                    break;
+                }
+            }
+            for (Organism* organism : Organism::organisms) {
+                if (organism->getCoordinates() == new_coordinates) {
+                    other = (Entity*)organism;
+                    break;
+                }
+            }
+            if (other == nullptr) {
+                return;
+            }
+            this->meet(other);
+        } else {
+            // std::cout << "Debug 4" << std::endl;
+            field->movePawn(this, new_coordinates);
+            coordinates = new_coordinates;
+            // std::cout << "Debug 5" << std::endl;
+        }
+    }
+}
+
 void Organism::meet(Entity* other) {
     if (other->is_food) {
+        // std::cout << "It's food!" << std::endl;
         this->eat((Food*)other);
     } else {
+        // std::cout << "It's an organism!" << std::endl;
+        // std::cout << "Meeting between " << this->id << " and " << ((Organism*)other)->id << std::endl;
         this->meet((Organism*)other);
     }
 }
@@ -72,7 +129,7 @@ void Organism::meet(Organism* other) {
     }
 }
 
-std::vector<Organism*> Organism::breed(Organism* other) {
+void Organism::breed(Organism* other) {
     // Only the youngest organism can breed
     if (stats.age > other->stats.age) {
         return other->breed(this);
@@ -91,7 +148,33 @@ std::vector<Organism*> Organism::breed(Organism* other) {
         other->stats.children.push_back(child);
         children.push_back(child);
     }
-    return children;
+    // Now we have to place the children in the field
+    for (Organism* child : children) {
+        sista::Coordinates new_coordinates = coordinates;
+        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+        for (int i = -10; i < 10; i++) {
+            for (int j = -10; j < 10; j++) {
+                if (field->isOutOfBounds(new_coordinates)) {
+                    continue;
+                }
+                if (!field->isOccupied(new_coordinates)) {
+                    goto found;
+                }
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                if (std::chrono::duration_cast<std::chrono::duration<double>>(end - begin).count() > 0.01) {
+                    goto label;
+                }
+            }
+        }
+        found:
+        child->coordinates = new_coordinates;
+        field->addPawn((sista::Pawn*)child);
+        continue;
+        label:
+        // std::cout << "Couldn't place the child" << std::endl;
+        children.erase(std::find(children.begin(), children.end(), child));
+        delete child;
+    }
 }
 
 void Organism::attack(Organism* other) {
@@ -147,22 +230,46 @@ void Organism::attack(Organism* other) {
 }
 
 void Organism::eat(Food* food) {
+    if (food == nullptr) {
+        return;
+    }
     health += food->energy;
+    // std::cout << "Health: " << health << std::endl;
     health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
+    // std::cout << "Health: " << health << std::endl;
     field->removePawn(food);
+    Food::foods.erase(std::find(Food::foods.begin(), Food::foods.end(), food));
+    // std::cout << "Debug 6" << std::endl;
     delete food;
+    // std::cout << "Debug 7" << std::endl;
+}
+
+void printDNA(DNA* dna) {
+    std::cout << "DNA: " << std::endl;
+    for (Allele* allele : dna->alleles) {
+        std::cout << "\t" << allele->name << ": " << allele->value << std::endl;
+    }
 }
 
 bool Organism::breedable(const Organism* other) const {
+    if (stats.parents[0] == other->stats.parents[0] || stats.parents[0] == other->stats.parents[1] || stats.parents[1] == other->stats.parents[0] || stats.parents[1] == other->stats.parents[1]) {
+        if (stats.parents[0] != nullptr || stats.parents[1] != nullptr)
+            return false; // Can't breed with a sibling
+    }
     DNA* other_dna = other->dna;
+    // printDNA(dna);
+    // printDNA(other_dna);
     int too_different_alleles = 0;
     for (Allele* allele : dna->alleles) {
-        int distance_coefficient = std::abs(
-            allele->value - other_dna->genes.at(allele->name)->value
-        ) / std::max(allele->value, other_dna->genes.at(allele->name)->value);
+        int other_value = other_dna->genes.at(allele->name)->value;
+        if (!std::max(allele->value, other_value)) {
+            too_different_alleles++;
+            continue;
+        }
+        int distance_coefficient = std::abs(allele->value - other_value) / std::max(allele->value, other_value);
         if (distance_coefficient > 0.5) {
             too_different_alleles++;
         }
     }
-    return too_different_alleles < dna->alleles.size() / 2;
+    return too_different_alleles < (int)(dna->alleles.size() / 2);
 }

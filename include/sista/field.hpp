@@ -137,6 +137,9 @@ namespace sista {
         virtual void removePawn(Pawn* pawn) { // Remove a pawn from the matrix
             pawns[pawn->getCoordinates().y][pawn->getCoordinates().x] = nullptr; // Set the pawn to nullptr
         }
+        virtual void removePawn(Coordinates coordinates) { // Remove a pawn from the matrix
+            pawns[coordinates.y][coordinates.x] = nullptr; // Set the pawn to nullptr
+        }
 
         void addPrintPawn(Pawn* pawn) { // Add a pawn to the matrix and print it
             addPawn(pawn); // Add the pawn to the matrix

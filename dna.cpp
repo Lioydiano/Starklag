@@ -30,7 +30,7 @@ Allele::Allele(Gene name_, int value_): name(name_), value(value_) {}
 Allele::Allele(Gene name_): name(name_), value(default_allele_value.at(name_)) {}
 
 void Allele::rational_mutate() {
-    value += name == Gene::LIFESPAN ? MUTATION_AMOUNT(random_engine)*50 : MUTATION_AMOUNT(random_engine);
+    value += MUTATION_AMOUNT(random_engine);
     value = std::abs(value);
 }
 void Allele::random_mutate() {

@@ -16,6 +16,7 @@ struct Statistics {
 class Entity: public sista::Pawn {
 public:
     bool is_food;
+
     Entity(char, sista::Coordinates, ANSI::Settings);
     Entity(char, sista::Coordinates, ANSI::Settings&, bool);
     ~Entity();
@@ -24,32 +25,34 @@ public:
 
 class Food: public Entity {
 public:
+    static inline std::vector<Food*> foods;
     int energy; // Energy of the food when eaten
-    Food(char, sista::Coordinates, ANSI::Settings);
-    Food(char, sista::Coordinates, ANSI::Settings&, bool);
+    Food(sista::Coordinates);
     ~Food();
 };
 
 
 class Organism: public Entity {
     static inline unsigned id_counter = 0;
-    static std::vector<Organism*> organisms;
-    static std::vector<Organism*> dead_organisms;
 
 public:
+    static inline std::vector<Organism*> organisms;
+    static inline std::vector<Organism*> dead_organisms;
+
     unsigned id;
-    Statistics stats;
-    DNA* dna; // DNA of the organism
     int health; // Health of the organism [starting value deduced from DNA, strength]
     int left; // Time left to live [starting value deduced from DNA, lifespan]
+    DNA* dna; // DNA of the organism
+    Statistics stats;
 
     Organism(char, sista::Coordinates, ANSI::Settings, DNA*, Statistics);
     Organism(char, sista::Coordinates, ANSI::Settings&, DNA*, Statistics, bool);
     ~Organism();
 
+    void move();
     void meet(Entity*); // Can lead to eating or to meet(Organism*)
     void meet(Organism*); // Can lead to breeding, attacking, defending, or nothing
-    std::vector<Organism*> breed(Organism*); // Returns the children, they have to be placed in the sista::Field
+    void breed(Organism*); // Places the children in the sista::Field
     void attack(Organism*);
     void eat(Food*);
 
