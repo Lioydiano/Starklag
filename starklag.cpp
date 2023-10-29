@@ -175,7 +175,7 @@ int main() {
                 if (isDead(organism)) {
                     continue;
                 }
-                cursor.set({2 + o, 60});
+                cursor.set({(short unsigned)(2 + o), 60});
                 std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
                 std::cout << " DNA: ";
                 for (std::pair<Gene, Allele*> gene : organism->dna->genes) {
