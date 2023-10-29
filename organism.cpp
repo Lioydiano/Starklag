@@ -16,3 +16,18 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
 Organism::~Organism() {
     delete dna;
 }
+
+
+bool Organism::breedable(const Organism* other) const {
+    DNA* other_dna = other->dna;
+    int too_different_alleles = 0;
+    for (Allele* allele : dna->alleles) {
+        int distance_coefficient = std::abs(
+            allele->value - other_dna->genes.at(allele->name)->value
+        ) / std::max(allele->value, other_dna->genes.at(allele->name)->value);
+        if (distance_coefficient > 0.5) {
+            too_different_alleles++;
+        }
+    }
+    return too_different_alleles < dna->alleles.size() / 2;
+}
