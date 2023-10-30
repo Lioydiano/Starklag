@@ -205,6 +205,9 @@ int main() {
                 }
                 Organism* organism = (Organism*)organism_;
                 if (isDead(organism)) {
+                    sista::Coordinates coordinates = organism->getCoordinates();
+                    if (field->getPawn(coordinates) == organism)
+                        field->removePawn(organism);
                     continue;
                 }
                 sista::Coordinates coordinates = organism->getCoordinates();
@@ -240,11 +243,7 @@ int main() {
             }
             // Clean the dead organisms
             for (Organism* organism : Organism::dead_organisms) {
-                sista::Coordinates coordinates = organism->getCoordinates();
-                if (field->getPawn(coordinates) == organism)
-                    field->removePawn(organism);
                 Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
-                delete organism;
             }
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
 
