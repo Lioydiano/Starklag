@@ -111,9 +111,15 @@ int main() {
             (unsigned)(random_engine() % 30),
             (unsigned)(random_engine() % 50)
         );
+        ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
+        ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
+        if ((int)foreground_color == (int)background_color) {
+            foreground_color = ANSI::ForegroundColor::F_WHITE;
+            background_color = ANSI::BackgroundColor::B_BLACK;
+        }
         ANSI::Settings settings(
-            (ANSI::ForegroundColor)(random_engine() % 8 + 30),
-            (ANSI::BackgroundColor)(random_engine() % 8 + 40),
+            foreground_color,
+            background_color,
             ANSI::Attribute::UNDERSCORE
         );
         DNA* dna = new DNA();

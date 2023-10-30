@@ -10,6 +10,12 @@ std::bernoulli_distribution attack_probability(0.3);
 sista::Field* field = nullptr;
 std::ofstream debug("debug.txt");
 
+struct Range {
+    int start;
+    int stop;
+    int step;
+};
+
 
 Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
     sista::Pawn(symbol_, coordinates_, settings_) {
@@ -181,8 +187,23 @@ void Organism::breed(Organism* other) {
     for (Organism* child : children) {
         sista::Coordinates new_coordinates = coordinates;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        for (int i = -10; i < 10; i++) {
-            for (int j = -10; j < 10; j++) {
+        Range r_i, r_j;
+        int random = random_engine() % 4;
+        if (random % 4 == 0) {
+            r_i = {-10, 10, 1};
+            r_j = {-10, 10, 1};
+        } else if (random % 4 == 1) {
+            r_i = {-10, 10, 1};
+            r_j = {10, -10, -1};
+        } else if (random % 4 == 2) {
+            r_i = {10, -10, -1};
+            r_j = {-10, 10, 1};
+        } else if (random % 4 == 3) {
+            r_i = {10, -10, -1};
+            r_j = {10, -10, -1};
+        }
+        for (int i = r_i.start; i < r_i.stop; i+=r_i.step) {
+            for (int j = r_j.start; j < r_j.stop; j+=r_j.step) {
                 new_coordinates.y = coordinates.y + i;
                 new_coordinates.x = coordinates.x + j;
                 if (field->isOutOfBounds(new_coordinates)) {
