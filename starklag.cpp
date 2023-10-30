@@ -191,15 +191,6 @@ int main() {
                     organism->left--; // If the organism is weak, it will die faster
                 organism->move();
             }
-            // Clean the dead organisms
-            for (Organism* organism : Organism::dead_organisms) {
-                sista::Coordinates coordinates = organism->getCoordinates();
-                if (field->getPawn(coordinates) == organism)
-                    field->removePawn(organism);
-                Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
-                delete organism;
-            }
-            Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
             // All the organisms may meet
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
                 void* organism_ = Organism::organisms[o];
@@ -241,6 +232,16 @@ int main() {
                 if (MUTATION_RATE(random_engine))
                     organism->dna->rational_mutate();
             }
+            // Clean the dead organisms
+            for (Organism* organism : Organism::dead_organisms) {
+                sista::Coordinates coordinates = organism->getCoordinates();
+                if (field->getPawn(coordinates) == organism)
+                    field->removePawn(organism);
+                Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+                delete organism;
+            }
+            Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
+
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             ANSI::reset();
             sista::clearScreen();
