@@ -1,4 +1,49 @@
 #include "organism.cpp"
+#ifdef _WIN32
+    #include <windows.h>
+#endif
+#ifdef _WIN32
+    #include <conio.h>
+#elif __APPLE__
+    #include <termios.h>
+
+    struct termios orig_termios;
+    void term_echooff() {
+        struct termios noecho;
+
+        tcgetattr(0, &orig_termios);
+
+        noecho = orig_termios;
+        noecho.c_lflag &= ~ECHO;
+
+        tcsetattr(0, TCSANOW, &noecho);
+    }
+#elif __linux__    
+    #include <unistd.h>
+    #include <termios.h>
+
+    char getch(void) {
+        char buf = 0;
+        struct termios old = {0};
+        fflush(stdout);
+        if(tcgetattr(0, &old) < 0)
+            perror("tcsetattr()");
+        old.c_lflag &= ~ICANON;
+        old.c_lflag &= ~ECHO;
+        old.c_cc[VMIN] = 1;
+        old.c_cc[VTIME] = 0;
+        if(tcsetattr(0, TCSANOW, &old) < 0)
+            perror("tcsetattr ICANON");
+        if(read(0, &buf, 1) < 0)
+            perror("read()");
+        old.c_lflag |= ICANON;
+        old.c_lflag |= ECHO;
+        if(tcsetattr(0, TCSADRAIN, &old) < 0)
+            perror("tcsetattr ~ICANON");
+        // printf("%c\n", buf);
+        return buf;
+    }
+#endif
 
 
 bool isDead(Organism* organism) {
@@ -30,6 +75,21 @@ bool isAsphyxiated(Organism* organism) {
 
 
 int main() {
+    #ifdef _WIN32
+        CONSOLE_FONT_INFOEX font_info;
+        font_info.cbSize = sizeof(font_info);
+        font_info.dwFontSize.X = 31;
+        font_info.dwFontSize.Y = 11;
+        font_info.FontFamily = FF_DONTCARE;
+        font_info.FontWeight = FW_NORMAL;
+        SetCurrentConsoleFontEx(
+            GetStdHandle(STD_OUTPUT_HANDLE),
+            false, &font_info
+        );
+    #endif
+    #ifdef __APPLE__
+        term_echooff();
+    #endif
     sista::Border border(
         '#', ANSI::Settings(
             ANSI::ForegroundColor::F_WHITE,
@@ -44,36 +104,28 @@ int main() {
     sista::Cursor cursor;
 
     // Create the organisms
-    for (int i = 0; i < 25; i++) {
+    for (int i = 0; i < 26; i++) {
         Organism* organism;
-        std::cout << "Debug 0" << std::endl;
-        char symbol = 'A' + random_engine() % 26;
+        char symbol = 'A' + i;
         sista::Coordinates coordinates(
             (unsigned)(random_engine() % 30),
             (unsigned)(random_engine() % 50)
         );
-        std::cout << "x: " << coordinates.x << ", y: " << coordinates.y << std::endl;
-        std::cout << "Debug 1" << std::endl;
         ANSI::Settings settings(
             (ANSI::ForegroundColor)(random_engine() % 8 + 30),
             (ANSI::BackgroundColor)(random_engine() % 8 + 40),
             ANSI::Attribute::UNDERSCORE
         );
-        std::cout << "Debug 2" << std::endl;
         DNA* dna = new DNA();
         for (int j = 0; j < (int)(genes.size()); j++) {
             for (int k = 0; k < (int)(random_engine() % 3); k++) {
                 dna->alleles[j]->rational_mutate();
             }
         }
-        std::cout << "Debug 3" << std::endl;
         Statistics stats{0, 0, {nullptr, nullptr}, {}};
         organism = new Organism(symbol, coordinates, settings, dna, stats);
-        std::cout << "Debug 4" << std::endl;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        std::cout << "Debug 5" << std::endl;
         field_.addPawn(pawn_);
-        std::cout << "Debug 6" << std::endl;
     }
 
     // Create the food
@@ -90,9 +142,24 @@ int main() {
     // Start the simulation
     sista::clearScreen();
     field->print(border);
+    Organism::dead_organisms.clear();
 
-    for (int _ = 0; _ < 1000; _++) {
+    bool paused = false;
+    std::thread input_thread([&paused]() {
+        while (true) {
+            #if defined(_WIN32) or defined(__linux__)
+                getch();
+            #elif __APPLE__
+                getchar();
+            #endif
+            paused = !paused;
+        }
+    });
+    for (int _ = 0; _ < 100; _++) {
         for (int i = 0; i < 10; i++) {
+            while (paused) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
             // All the organisms may move
             for (std::vector<Organism*>::iterator it = Organism::organisms.begin(); it != Organism::organisms.end(); it++) {
                 Organism* organism = *it;
@@ -100,17 +167,20 @@ int main() {
                     continue;
                 }
                 if (isDead(organism)) {
+                    debug << "Organism " << organism << " (" << organism->id << ") is [already] dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     sista::Coordinates coordinates = organism->getCoordinates();
                     if (field->getPawn(coordinates) == organism)
-                        field->removePawn(coordinates);
+                        field->removePawn(organism);
                     continue;
                 }
                 if (organism->left <= 0 || organism->health <= 0) {
+                    debug << "Organism " << organism << " (" << organism->id << ") is dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
                 // Check of asphyxiation
                 if (isAsphyxiated(organism)) {
+                    debug << "Organism " << organism << " (" << organism->id << ") is asphyxiated with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
@@ -121,6 +191,15 @@ int main() {
                     organism->left--; // If the organism is weak, it will die faster
                 organism->move();
             }
+            // Clean the dead organisms
+            for (Organism* organism : Organism::dead_organisms) {
+                sista::Coordinates coordinates = organism->getCoordinates();
+                if (field->getPawn(coordinates) == organism)
+                    field->removePawn(organism);
+                Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+                delete organism;
+            }
+            Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
             // All the organisms may meet
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
                 void* organism_ = Organism::organisms[o];
@@ -176,17 +255,13 @@ int main() {
                 if (isDead(organism)) {
                     continue;
                 }
-                cursor.set({(short unsigned)(2 + o), 60});
+                cursor.set({(short unsigned)o, 54});
                 std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
                 std::cout << " DNA: ";
                 organism->dna->printInline();
-                std::cout << " {" << organism->getCoordinates().x << ", " << organism->getCoordinates().y << "}"; 
+                std::cout << " {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}"; 
             }
             std::cout << std::flush;
-        }
-        // Clean the dead organisms
-        for (Organism* organism : Organism::dead_organisms) {
-            Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
         }
     }
     for (Organism* organism : Organism::organisms) {
@@ -198,5 +273,14 @@ int main() {
     for (Organism* organism : Organism::dead_organisms) {
         delete organism;
     }
-    std::cin.get();
+
+    #if defined(_WIN32) or defined(__linux__)
+        getch();
+    #elif __APPLE__
+        getchar();
+    #endif
+    #ifdef __APPLE__
+        // noecho.c_lflag &= ~ECHO;, noecho.c_lflag |= ECHO;
+        tcsetattr(0, TCSAFLUSH, &orig_termios);
+    #endif
 }

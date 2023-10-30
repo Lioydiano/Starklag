@@ -6,7 +6,7 @@
 
 
 std::bernoulli_distribution breeding_probability(0.1);
-std::bernoulli_distribution attack_probability(0.1);
+std::bernoulli_distribution attack_probability(0.3);
 sista::Field* field = nullptr;
 std::ofstream debug("debug.txt");
 
@@ -142,8 +142,8 @@ void Organism::meet(Organism* other) {
 void Organism::breed(Organism* other) {
     if (stats.age < 10 || other->stats.age < 10)
         return;
-    // Only the youngest organism can breed
-    if (stats.age > other->stats.age) {
+    // The youngest organism is more likely to breed
+    if (stats.age > other->stats.age && random_engine() % 3) {
         return other->breed(this);
     }
     if (!breedable(other))
@@ -183,6 +183,8 @@ void Organism::breed(Organism* other) {
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
         for (int i = -10; i < 10; i++) {
             for (int j = -10; j < 10; j++) {
+                new_coordinates.y = coordinates.y + i;
+                new_coordinates.x = coordinates.x + j;
                 if (field->isOutOfBounds(new_coordinates)) {
                     continue;
                 }
@@ -203,6 +205,7 @@ void Organism::breed(Organism* other) {
         // std::cout << "Couldn't place the child" << std::endl;
         children.erase(std::find(children.begin(), children.end(), child));
         delete child;
+        return; // There's no space for other children
     }
 }
 
@@ -246,16 +249,31 @@ void Organism::attack(Organism* other) {
             int damage_done = std::max(this_attack, 0);
 
             other->health -= damage_done;
+        } else if (other_nature > Nature::NEUTRAL) { // So peaceful that it won't take nor give damage
+            return;
         }
-        // Check if someone died
-        if (health <= 0)
-            dead_organisms.push_back(this);
-        if (other->health <= 0) {
-            dead_organisms.push_back(other);
-            if (other_nature != Nature::AGGRESSIVE) {
-                // Eat the other organism
-                health += other->dna->genes.at(Gene::STRENGTH)->value*5;
+    } else if (this_nature < (int)Nature::AGGRESSIVE) { // Will attack only if the other is aggressive or over...
+        // ...then the most aggressive organism will win without taking any damage
+        if (other_nature <= Nature::AGGRESSIVE) {
+            if (this_nature > other_nature) {
+                other->health = 0;
+            } else {
+                health = 0;
             }
+        }
+    }
+    // Check if someone died
+    if (health <= 0) {
+        debug << "\t" << this << " was defeated" << std::endl;
+        dead_organisms.push_back(this);
+    }
+    if (other->health <= 0) {
+        debug << "\t" << other << " was defeated" << std::endl;
+        dead_organisms.push_back(other);
+        if (other_nature != Nature::AGGRESSIVE) {
+            // Eat the other organism
+            debug << "\t" << this << " gains " << other->dna->genes.at(Gene::STRENGTH)->value*5 << " health points eating " << other << std::endl;
+            health += other->dna->genes.at(Gene::STRENGTH)->value*5;
         }
     }
 }
@@ -295,6 +313,8 @@ bool Organism::breedable(const Organism* other) const {
             return false; // Can't breed with its sibling
         if (this->stats.parents[1] == other->stats.parents[0] || this->stats.parents[1] == other->stats.parents[1])
             return false; // Can't breed with its sibling
+        if (random_device() % 2 && random_device() % 2)
+            return false; // Reduce to 25% the probability of breeding with an organism of the same strain (or, at least, with the same external appearance)
     }
 
     DNA* other_dna = other->dna;
@@ -314,10 +334,10 @@ bool Organism::breedable(const Organism* other) const {
             too_different_alleles++;
         }
     }
-    if (too_different_alleles >= 2) {
+    if (too_different_alleles >= 3) {
         debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
     } else {
         debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
     }
-    return too_different_alleles < 2;
+    return too_different_alleles < 3;
 }

@@ -56,8 +56,10 @@ void DNA::print() {
 }
 void DNA::printInline() {
     std::cout << "{";
-    for (Allele* allele : this->alleles) {
-        std::cout << allele->name << ":" << allele->value;
+    for (std::vector<Allele*>::iterator allele = this->alleles.begin(); allele != this->alleles.end(); allele++) {
+        std::cout << (*allele)->value;
+        if (allele != this->alleles.end() - 1)
+            std::cout << " : ";
     }
     std::cout << "}" << std::flush;
 }
