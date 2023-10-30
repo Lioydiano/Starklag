@@ -114,6 +114,7 @@ int main() {
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
+                organism->has_given_birth = false;
                 organism->stats.age++;
                 organism->left--;
                 if (organism->health < organism->dna->genes.at(Gene::STRENGTH)->value*5)
@@ -178,9 +179,7 @@ int main() {
                 cursor.set({(short unsigned)(2 + o), 60});
                 std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
                 std::cout << " DNA: ";
-                for (std::pair<Gene, Allele*> gene : organism->dna->genes) {
-                    std::cout << gene.first << ": " << gene.second->value << ", ";
-                }
+                organism->dna->printInline();
                 std::cout << " {" << organism->getCoordinates().x << ", " << organism->getCoordinates().y << "}"; 
             }
             std::cout << std::flush;

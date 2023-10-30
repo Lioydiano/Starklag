@@ -34,6 +34,8 @@ void Allele::rational_mutate() {
     value = std::abs(value);
     if (name == Gene::LIFESPAN)
         value = std::max(value, (int)LifeSpan::SHORT);
+    if (name == Gene::STRENGTH)
+        value = std::max(value, (int)Strength::WEAK);
 }
 void Allele::random_mutate() {
     std::vector<int>* possible_alleles = &possible_random_allele_values.at(name);
@@ -44,6 +46,27 @@ Allele* Allele::combine(const Allele* other) const {
     Allele* new_allele = new Allele(name);
     new_allele->value = rand() % 2 ? value : other->value;
     return new_allele;
+}
+
+void DNA::print() {
+    std::cout << "DNA: " << std::endl;
+    for (Allele* allele : this->alleles) {
+        std::cout << "\t" << allele->name << ": " << allele->value << std::endl;
+    }
+}
+void DNA::printInline() {
+    std::cout << "{";
+    for (Allele* allele : this->alleles) {
+        std::cout << allele->name << ":" << allele->value;
+    }
+    std::cout << "}" << std::flush;
+}
+void DNA::printInline(std::ofstream& fout) {
+    fout << "{";
+    for (Allele* allele : this->alleles) {
+        fout << allele->value << ":";
+    }
+    fout << "}" << std::flush;
 }
 
 bool Allele::operator==(const Allele& other) const {

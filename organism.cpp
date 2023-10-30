@@ -8,6 +8,7 @@
 std::bernoulli_distribution breeding_probability(0.1);
 std::bernoulli_distribution attack_probability(0.1);
 sista::Field* field = nullptr;
+std::ofstream debug("debug.txt");
 
 
 Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
@@ -35,6 +36,7 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
     Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = std::pow(dna->genes.at(Gene::LIFESPAN)->value, 2)*100;
+    has_given_birth = false;
     this->id = id_counter++;
     stats.age = 0;
 }
@@ -43,6 +45,7 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
     Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = dna->genes.at(Gene::LIFESPAN)->value;
+    has_given_birth = false;
     this->id = id_counter++;
     stats.age = 0;
 }
@@ -120,25 +123,43 @@ void Organism::meet(Entity* other) {
 }
 
 void Organism::meet(Organism* other) {
-    bool breedable_ = this->breedable(other);
-    if (breedable_) {
-        if (breeding_probability(random_engine)) {
-            this->breed(other);
-        }
-    } else {
-        if (attack_probability(random_engine)) {
-            this->attack(other);
-        }
+    debug << this << " is trying to meet with " << other << std::endl;
+    debug << "\t" << this << " stats: {" << this->stats.age << ", " << this->stats.generation << ", ";
+    debug << "{" << this->stats.parents[0] << ", " << this->stats.parents[1] << "}}";
+    debug << " output: {'" << this->symbol << "', {" << this->getCoordinates().y << ", " << this->getCoordinates().x << "}}\n"; 
+    debug << "\t" << other << " stats: {" << other->stats.age << ", " << other->stats.generation << ", ";
+    debug << "{" << other->stats.parents[0] << ", " << other->stats.parents[1] << "}}";
+    debug << " output: {'" << other->symbol << "', {" << other->getCoordinates().y << ", " << other->getCoordinates().x << "}}\n";
+    debug << std::flush;
+
+    if (attack_probability(random_engine)) {
+        this->attack(other);
+    } else if (breeding_probability(random_engine)) {
+        this->breed(other);
     }
 }
 
 void Organism::breed(Organism* other) {
+    if (stats.age < 10 || other->stats.age < 10)
+        return;
     // Only the youngest organism can breed
     if (stats.age > other->stats.age) {
         return other->breed(this);
     }
     if (!breedable(other))
         return;
+    if (this->has_given_birth || other->has_given_birth)
+        return; // Can't give birth more than once for each frame
+    this->has_given_birth = true;
+    debug << "BREED!";
+    debug << this << " with " << other << std::endl;
+    debug << "\t" << "'" << this->symbol << "' ";
+    this->dna->printInline(debug);
+    debug << std::endl;
+    debug << "\t" << "'" << other->symbol << "' ";
+    other->dna->printInline(debug);
+    debug << std::endl;
+
     std::vector<Organism*> children;
     for (int i = 0; i < dna->genes.at(Gene::FERTILITY)->value; i++) {
         // Combine the DNA of the two organisms
@@ -152,6 +173,9 @@ void Organism::breed(Organism* other) {
         stats.children.push_back(child);
         other->stats.children.push_back(child);
         children.push_back(child);
+        debug << "\t" << child << " is born with ";
+        child->dna->printInline(debug);
+        debug << std::endl;
     }
     // Now we have to place the children in the field
     for (Organism* child : children) {
@@ -195,6 +219,8 @@ void Organism::attack(Organism* other) {
             return;
         }
     } else if (this_nature == Nature::AGGRESSIVE) { // Will attack
+        debug << "ATTACK!";
+        debug << this << " attacks " << other << ", whom nature is " << other_nature << std::endl;
         int this_attack = dna->genes.at(Gene::ATTACK)->value;
         int this_defense = dna->genes.at(Gene::DEFENSE)->value;
         int other_defense = other->dna->genes.at(Gene::DEFENSE)->value;
@@ -238,6 +264,7 @@ void Organism::eat(Food* food) {
     if (food == nullptr) {
         return;
     }
+    debug << "EAT!" << food << std::endl;
     health += food->energy;
     // std::cout << "Health: " << health << std::endl;
     health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
@@ -249,37 +276,48 @@ void Organism::eat(Food* food) {
     // std::cout << "Debug 7" << std::endl;
 }
 
-void printDNA(DNA* dna) {
-    std::cout << "DNA: " << std::endl;
-    for (Allele* allele : dna->alleles) {
-        std::cout << "\t" << allele->name << ": " << allele->value << std::endl;
-    }
-}
 
 bool Organism::breedable(const Organism* other) const {
-    // if (other == nullptr) {
-    //     return false;
-    // }
-    // if (this->id == other->id) {
-    //     return false;
-    // }
-    // if (this->symbol == other->symbol) {
-    //     return false; // Can't breed with the same generation and the same symbol
-    // }
-    return true;
-    // DNA* other_dna = other->dna;
-    // // printDNA(dna);
-    // // printDNA(other_dna);
-    // int too_different_alleles = 0;
-    // for (Allele* allele : dna->alleles) {
-    //     int other_value = other_dna->genes.at(allele->name)->value;
-    //     if (!std::max(allele->value, other_value)) {
-    //         continue;
-    //     }
-    //     int distance_coefficient = std::abs(allele->value - other_value) / std::max(allele->value, other_value);
-    //     if (distance_coefficient > 0.5) {
-    //         too_different_alleles++;
-    //     }
-    // }
-    // return too_different_alleles > 1;
+    if (other == nullptr) {
+        debug << "\t" << this << " can't breed with " << other << " because it's nullptr" << std::endl;
+        return false;
+    }
+    if (this->id == other->id) {
+        return false;
+    }
+    if (this->symbol == other->symbol) {
+        // debug << "\t" << this << " can't breed with " << other << " because they have the same symbol (" << this->symbol << ")" << std::endl;
+        if (this->stats.parents[0] == other || this->stats.parents[1] == other)
+            return false; // Can't breed with its parent
+        if (other->stats.parents[0] == this || other->stats.parents[1] == this)
+            return false; // Can't breed with its child
+        if (this->stats.parents[0] == other->stats.parents[0] || this->stats.parents[0] == other->stats.parents[1])
+            return false; // Can't breed with its sibling
+        if (this->stats.parents[1] == other->stats.parents[0] || this->stats.parents[1] == other->stats.parents[1])
+            return false; // Can't breed with its sibling
+    }
+
+    DNA* other_dna = other->dna;
+    debug << "\t\t";
+    this->dna->printInline(debug);
+    debug << "\n\t\t";
+    other_dna->printInline(debug);
+    debug << std::endl;
+    int too_different_alleles = 0;
+    for (Allele* allele : dna->alleles) {
+        int other_value = other_dna->genes.at(allele->name)->value;
+        if (!std::max(allele->value, other_value)) {
+            continue;
+        }
+        int distance_coefficient = std::abs(allele->value - other_value) / std::max(allele->value, other_value);
+        if (distance_coefficient > 0.5) {
+            too_different_alleles++;
+        }
+    }
+    if (too_different_alleles >= 2) {
+        debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
+    } else {
+        debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
+    }
+    return too_different_alleles < 2;
 }

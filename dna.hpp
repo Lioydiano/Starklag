@@ -46,6 +46,10 @@ public:
 
     DNA* combine(const DNA*) const;
 
+    void print();
+    void printInline();
+    void printInline(std::ofstream&);
+
     bool operator==(const DNA&) const;
     bool operator!=(const DNA&) const;
 };

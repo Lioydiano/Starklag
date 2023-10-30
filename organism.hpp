@@ -1,6 +1,7 @@
 #pragma once
 #include "include/sista/sista.hpp"
 #include "dna.hpp"
+#include <fstream>
 
 
 class Food;
@@ -40,6 +41,7 @@ public:
     static inline std::vector<Organism*> dead_organisms;
 
     unsigned id;
+    bool has_given_birth;
     int health; // Health of the organism [starting value deduced from DNA, strength]
     int left; // Time left to live [starting value deduced from DNA, lifespan]
     DNA* dna; // DNA of the organism
@@ -64,3 +66,4 @@ public:
 extern std::bernoulli_distribution breeding_probability;
 extern std::bernoulli_distribution attack_probability;
 extern sista::Field* field;
+extern std::ofstream debug;
