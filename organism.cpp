@@ -209,7 +209,7 @@ void Organism::breed(Organism* other) {
                 if (field->isOutOfBounds(new_coordinates)) {
                     continue;
                 }
-                if (!field->isOccupied(new_coordinates)) {
+                if (field->isFree(new_coordinates)) {
                     goto found;
                 }
                 std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
