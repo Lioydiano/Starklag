@@ -16,7 +16,7 @@ std::unordered_map<Gene, std::vector<int>> possible_random_allele_values = {
     {STRENGTH, {Strength::WEAK, Strength::MODERATE, Strength::STRONG}},
     {FERTILITY, {Fertility::LOW, Fertility::MEDIAN, Fertility::HIGH}},
     {NATURE, {Nature::AGGRESSIVE, Nature::PASSIVE, Nature::NEUTRAL}},
-    {LIFESPAN, {LifeSpan::SHORT, LifeSpan::AVERAGE, LifeSpan::LONG}},
+    {LIFESPAN, {LifeSpan::SHORT_, LifeSpan::AVERAGE, LifeSpan::LONG_}},
     {ATTACK, {1, 2, 3}}, {DEFENSE, {1, 2, 3}},
     {VISION, {Vision::NEAR, Vision::CLEAR, Vision::FAR}}
 };
@@ -33,7 +33,7 @@ void Allele::rational_mutate() {
     value += MUTATION_AMOUNT(random_engine);
     value = std::abs(value);
     if (name == Gene::LIFESPAN)
-        value = std::max(value, (int)LifeSpan::SHORT);
+        value = std::max(value, (int)LifeSpan::SHORT_);
     if (name == Gene::STRENGTH)
         value = std::max(value, (int)Strength::WEAK);
 }

@@ -75,18 +75,6 @@ bool isAsphyxiated(Organism* organism) {
 
 
 int main() {
-    #ifdef _WIN32
-        CONSOLE_FONT_INFOEX font_info;
-        font_info.cbSize = sizeof(font_info);
-        font_info.dwFontSize.X = 31;
-        font_info.dwFontSize.Y = 11;
-        font_info.FontFamily = FF_DONTCARE;
-        font_info.FontWeight = FW_NORMAL;
-        SetCurrentConsoleFontEx(
-            GetStdHandle(STD_OUTPUT_HANDLE),
-            false, &font_info
-        );
-    #endif
     #ifdef __APPLE__
         term_echooff();
     #endif
@@ -176,7 +164,7 @@ int main() {
                     debug << "Organism " << organism << " (" << organism->id << ") is [already] dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     sista::Coordinates coordinates = organism->getCoordinates();
                     if (field->getPawn(coordinates) == organism)
-                        field->removePawn(organism);
+                        field->removePawn(coordinates);
                     continue;
                 }
                 if (organism->left <= 0 || organism->health <= 0) {
@@ -207,7 +195,7 @@ int main() {
                 if (isDead(organism)) {
                     sista::Coordinates coordinates = organism->getCoordinates();
                     if (field->getPawn(coordinates) == organism)
-                        field->removePawn(organism);
+                        field->removePawn(coordinates);
                     continue;
                 }
                 sista::Coordinates coordinates = organism->getCoordinates();

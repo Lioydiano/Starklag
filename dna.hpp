@@ -65,7 +65,7 @@ enum Nature {AGGRESSIVE=1, PASSIVE=2, NEUTRAL=3}; // Neutral won't attack and wo
 enum Speed {SLOW=1, MEDIUM=2, FAST=3};
 enum Strength {WEAK=1, MODERATE=2, STRONG=3};
 enum Fertility {LOW=1, MEDIAN=3, HIGH=5};
-enum LifeSpan {SHORT=1, AVERAGE=2, LONG=3}; // If more than LONG, then it's potentially immortal
+enum LifeSpan {SHORT_=1, AVERAGE=2, LONG_=3}; // If more than LONG, then it's potentially immortal
 enum Vision {NEAR=1, CLEAR=3, FAR=5};
 
 extern std::unordered_map<Gene, int> default_allele_value;
