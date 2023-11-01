@@ -3,12 +3,15 @@
 #include <random>
 #include <chrono>
 #include <thread>
+#define DEBUG 1
 
 
 std::bernoulli_distribution breeding_probability(0.1);
 std::bernoulli_distribution attack_probability(0.3);
 sista::Field* field = nullptr;
-std::ofstream debug("debug.txt");
+#if DEBUG
+    std::ofstream debug("debug.txt");
+#endif
 
 struct Range {
     int start;
@@ -61,10 +64,8 @@ Organism::~Organism() {
 
 void Organism::move() {
     std::bernoulli_distribution moving_probability(0.2*dna->genes.at(Gene::SPEED)->value);
-    // std::cout << "Debug 0" << std::endl;
     if (moving_probability(random_engine)) {
         sista::Coordinates new_coordinates = coordinates;
-        // std::cout << "Debug 1" << std::endl;
         do {
             new_coordinates = coordinates;
             switch (random_engine() % 4) {
@@ -86,7 +87,6 @@ void Organism::move() {
                 }
             }
         } while (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates);
-        // std::cout << "Moving to {" << new_coordinates.y << ", " << new_coordinates.x << "}" << std::endl;
         if (field->isOccupied(new_coordinates)) {
             Entity* other = nullptr;
             for (Food* food : Food::foods) {
@@ -106,10 +106,8 @@ void Organism::move() {
             }
             this->meet(other);
         } else {
-            // std::cout << "Debug 4" << std::endl;
             field->movePawn(this, new_coordinates);
             coordinates = new_coordinates;
-            // std::cout << "Debug 5" << std::endl;
         }
     }
 }
@@ -119,24 +117,23 @@ void Organism::meet(Entity* other) {
         return;
     }
     if (other->is_food) {
-        // std::cout << "It's food!" << std::endl;
         this->eat((Food*)other);
     } else {
-        // std::cout << "It's an organism!" << std::endl;
-        // std::cout << "Meeting between " << this->id << " and " << ((Organism*)other)->id << std::endl;
         this->meet((Organism*)other);
     }
 }
 
 void Organism::meet(Organism* other) {
-    debug << this << " is trying to meet with " << other << std::endl;
-    debug << "\t" << this << " stats: {" << this->stats.age << ", " << this->stats.generation << ", ";
-    debug << "{" << this->stats.parents[0] << ", " << this->stats.parents[1] << "}}";
-    debug << " output: {'" << this->symbol << "', {" << this->getCoordinates().y << ", " << this->getCoordinates().x << "}}\n"; 
-    debug << "\t" << other << " stats: {" << other->stats.age << ", " << other->stats.generation << ", ";
-    debug << "{" << other->stats.parents[0] << ", " << other->stats.parents[1] << "}}";
-    debug << " output: {'" << other->symbol << "', {" << other->getCoordinates().y << ", " << other->getCoordinates().x << "}}\n";
-    debug << std::flush;
+    #if DEBUG
+        debug << this << " is trying to meet with " << other << std::endl;
+        debug << "\t" << this << " stats: {" << this->stats.age << ", " << this->stats.generation << ", ";
+        debug << "{" << this->stats.parents[0] << ", " << this->stats.parents[1] << "}}";
+        debug << " output: {'" << this->symbol << "', {" << this->getCoordinates().y << ", " << this->getCoordinates().x << "}}\n"; 
+        debug << "\t" << other << " stats: {" << other->stats.age << ", " << other->stats.generation << ", ";
+        debug << "{" << other->stats.parents[0] << ", " << other->stats.parents[1] << "}}";
+        debug << " output: {'" << other->symbol << "', {" << other->getCoordinates().y << ", " << other->getCoordinates().x << "}}\n";
+        debug << std::flush;
+    #endif
 
     if (attack_probability(random_engine)) {
         this->attack(other);
@@ -157,14 +154,16 @@ void Organism::breed(Organism* other) {
     if (this->has_given_birth || other->has_given_birth)
         return; // Can't give birth more than once for each frame
     this->has_given_birth = true;
-    debug << "BREED!";
-    debug << this << " with " << other << std::endl;
-    debug << "\t" << "'" << this->symbol << "' ";
-    this->dna->printInline(debug);
-    debug << std::endl;
-    debug << "\t" << "'" << other->symbol << "' ";
-    other->dna->printInline(debug);
-    debug << std::endl;
+    #if DEBUG
+        debug << "BREED!";
+        debug << this << " with " << other << std::endl;
+        debug << "\t" << "'" << this->symbol << "' ";
+        this->dna->printInline(debug);
+        debug << std::endl;
+        debug << "\t" << "'" << other->symbol << "' ";
+        other->dna->printInline(debug);
+        debug << std::endl;
+    #endif
 
     std::vector<Organism*> children;
     for (int i = 0; i < dna->genes.at(Gene::FERTILITY)->value; i++) {
@@ -179,9 +178,11 @@ void Organism::breed(Organism* other) {
         stats.children.push_back(child);
         other->stats.children.push_back(child);
         children.push_back(child);
-        debug << "\t" << child << " is born with ";
-        child->dna->printInline(debug);
-        debug << std::endl;
+        #if DEBUG
+            debug << "\t" << child << " is born with ";
+            child->dna->printInline(debug);
+            debug << std::endl;
+        #endif
     }
     // Now we have to place the children in the field
     for (Organism* child : children) {
@@ -223,7 +224,6 @@ void Organism::breed(Organism* other) {
         field->addPawn((sista::Pawn*)child);
         continue;
         label:
-        // std::cout << "Couldn't place the child" << std::endl;
         children.erase(std::find(children.begin(), children.end(), child));
         delete child;
         return; // There's no space for other children
@@ -243,8 +243,10 @@ void Organism::attack(Organism* other) {
             return;
         }
     } else if (this_nature == Nature::AGGRESSIVE) { // Will attack
-        debug << "ATTACK!";
-        debug << this << " attacks " << other << ", whom nature is " << other_nature << std::endl;
+        #if DEBUG
+            debug << "ATTACK!";
+            debug << this << " attacks " << other << ", whom nature is " << other_nature << std::endl;
+        #endif
         int this_attack = dna->genes.at(Gene::ATTACK)->value;
         int this_defense = dna->genes.at(Gene::DEFENSE)->value;
         int other_defense = other->dna->genes.at(Gene::DEFENSE)->value;
@@ -285,15 +287,21 @@ void Organism::attack(Organism* other) {
     }
     // Check if someone died
     if (health <= 0) {
-        debug << "\t" << this << " was defeated" << std::endl;
+        #if DEBUG
+            debug << "\t" << this << " was defeated" << std::endl;
+        #endif
         dead_organisms.push_back(this);
     }
     if (other->health <= 0) {
-        debug << "\t" << other << " was defeated" << std::endl;
+        #if DEBUG
+            debug << "\t" << other << " was defeated" << std::endl;
+        #endif
         dead_organisms.push_back(other);
         if (other_nature != Nature::AGGRESSIVE) {
             // Eat the other organism
-            debug << "\t" << this << " gains " << other->dna->genes.at(Gene::STRENGTH)->value*5 << " health points eating " << other << std::endl;
+            #if DEBUG
+                debug << "\t" << this << " gains " << other->dna->genes.at(Gene::STRENGTH)->value*5 << " health points eating " << other << std::endl;
+            #endif
             health += other->dna->genes.at(Gene::STRENGTH)->value*5;
         }
     }
@@ -303,29 +311,29 @@ void Organism::eat(Food* food) {
     if (food == nullptr) {
         return;
     }
-    debug << "EAT!" << food << std::endl;
+    #if DEBUG
+        debug << "EAT! ";
+        debug << this << " eats " << food << std::endl;
+    #endif
     health += food->energy;
-    // std::cout << "Health: " << health << std::endl;
     health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
-    // std::cout << "Health: " << health << std::endl;
     field->removePawn(food);
     Food::foods.erase(std::find(Food::foods.begin(), Food::foods.end(), food));
-    // std::cout << "Debug 6" << std::endl;
     delete food;
-    // std::cout << "Debug 7" << std::endl;
 }
 
 
 bool Organism::breedable(const Organism* other) const {
     if (other == nullptr) {
-        debug << "\t" << this << " can't breed with " << other << " because it's nullptr" << std::endl;
+        #if DEBUG
+            debug << "\t" << this << " can't breed with " << other << " because it's nullptr" << std::endl;
+        #endif
         return false;
     }
     if (this->id == other->id) {
         return false;
     }
     if (this->symbol == other->symbol) {
-        // debug << "\t" << this << " can't breed with " << other << " because they have the same symbol (" << this->symbol << ")" << std::endl;
         if (this->stats.parents[0] == other || this->stats.parents[1] == other)
             return false; // Can't breed with its parent
         if (other->stats.parents[0] == this || other->stats.parents[1] == this)
@@ -339,11 +347,14 @@ bool Organism::breedable(const Organism* other) const {
     }
 
     DNA* other_dna = other->dna;
-    debug << "\t\t";
-    this->dna->printInline(debug);
-    debug << "\n\t\t";
-    other_dna->printInline(debug);
-    debug << std::endl;
+    #if DEBUG
+        debug << "\t" << this << " is trying to breed with " << other << std::endl;
+        debug << "\t\t";
+        this->dna->printInline(debug);
+        debug << "\n\t\t";
+        other_dna->printInline(debug);
+        debug << std::endl;
+    #endif
     int too_different_alleles = 0;
     for (Allele* allele : dna->alleles) {
         int other_value = other_dna->genes.at(allele->name)->value;
@@ -356,9 +367,13 @@ bool Organism::breedable(const Organism* other) const {
         }
     }
     if (too_different_alleles >= 3) {
-        debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
+        #if DEBUG
+            debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
+        #endif
     } else {
-        debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
+        #if DEBUG
+            debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
+        #endif
     }
     return too_different_alleles < 3;
 }

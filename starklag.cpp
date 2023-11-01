@@ -54,23 +54,36 @@ bool isDead(Organism* organism) {
     }
     return false;
 }
-bool isAsphyxiated(Organism* organism) {
+int freeSpacesAround(Organism* organism) {
     sista::Coordinates coordinates = organism->getCoordinates();
     sista::Coordinates neighbor_coordinates[4];
-    neighbor_coordinates[0] = sista::Coordinates(coordinates.x, coordinates.y-1);
-    neighbor_coordinates[1] = sista::Coordinates(coordinates.x, coordinates.y+1);
-    neighbor_coordinates[2] = sista::Coordinates(coordinates.x-1, coordinates.y);
-    neighbor_coordinates[3] = sista::Coordinates(coordinates.x+1, coordinates.y);
+    neighbor_coordinates[0] = sista::Coordinates(coordinates.y-1, coordinates.x);
+    neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
+    neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
+    neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
+    #if DEBUG
+        debug << "Checking organism " << organism << " (" << organism->id << ") at {" << coordinates.y << ", " << coordinates.x << "}" << std::endl;
+    #endif
+    int free_spaces = 0;
     for (sista::Coordinates coordinates : neighbor_coordinates) {
+        #if DEBUG
+            debug << "\tChecking {" << coordinates.y << ", " << coordinates.x << "}" << std::endl;
+        #endif
         if (field->isOutOfBounds(coordinates)) {
+            #if DEBUG
+                debug << "\t\tOut of bounds which end in {" << field->height - 1 << ", " << field->width - 1 << "}" << std::endl;
+            #endif
             continue;
         }
-        sista::Pawn* pawn = field->getPawn(coordinates);
-        if (pawn == nullptr) {
-            return false; // There is at least one free space
+        std::vector<sista::Pawn*>::iterator pawn = field->getPawnIterator(coordinates);
+        if (*pawn == nullptr) {
+            #if DEBUG
+                debug << "\t\tFree space" << std::endl;
+            #endif
+            free_spaces++;
         }
     }
-    return true; // There is no free space
+    return free_spaces;
 }
 
 
@@ -87,7 +100,6 @@ int main() {
     );
     sista::Field field_(50, 30);
     field_.reset();
-    field_.clear();
     field = &field_;
     sista::Cursor cursor;
 
@@ -96,8 +108,8 @@ int main() {
         Organism* organism;
         char symbol = 'A' + i;
         sista::Coordinates coordinates(
-            (unsigned)(random_engine() % 30),
-            (unsigned)(random_engine() % 50)
+            (short unsigned)(random_engine() % 30),
+            (short unsigned)(random_engine() % 50)
         );
         ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
         ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
@@ -125,10 +137,16 @@ int main() {
     // Create the food
     for (int i = 0; i < 40; i++) {
         Food* food;
-        sista::Coordinates coordinates(
-            (unsigned)(random_engine() % 30),
-            (unsigned)(random_engine() % 50)
-        );
+        sista::Coordinates coordinates;
+        while (true) {
+            coordinates = {
+                (short unsigned)(random_engine() % 30),
+                (short unsigned)(random_engine() % 50)
+            };
+            if (*field_.getPawnIterator(coordinates) == nullptr) {
+                break;
+            }
+        }
         food = new Food(coordinates);
         field_.addPawn(food);
     }
@@ -141,12 +159,47 @@ int main() {
     bool paused = false;
     std::thread input_thread([&paused]() {
         while (true) {
+            char c;
             #if defined(_WIN32) or defined(__linux__)
-                getch();
+                c = getch();
             #elif __APPLE__
-                getchar();
+                c = getchar();
             #endif
-            paused = !paused;
+            if (paused) {
+                std::string resume = "resume";
+                bool resume_ = true;
+                for (int i = 0; i < (int)(resume.size()); i++) {
+                    if (c != resume[i]) {
+                        resume_ = false;
+                        return;
+                    }
+                    #if defined(_WIN32) or defined(__linux__)
+                        c = getch();
+                    #elif __APPLE__
+                        c = getchar();
+                    #endif
+                }
+                if (resume_) {
+                    paused = false;
+                }
+            } else {
+                std::string pause = "pause";
+                bool pause_ = true;
+                for (int i = 0; i < (int)(pause.size()); i++) {
+                    if (c != pause[i]) {
+                        pause_ = false;
+                        return;
+                    }
+                    #if defined(_WIN32) or defined(__linux__)
+                        c = getch();
+                    #elif __APPLE__
+                        c = getchar();
+                    #endif
+                }
+                if (pause_) {
+                    paused = true;
+                }
+            }
         }
     });
     for (int _ = 0; _ < 100; _++) {
@@ -156,25 +209,35 @@ int main() {
             }
             // All the organisms may move
             for (std::vector<Organism*>::iterator it = Organism::organisms.begin(); it != Organism::organisms.end(); it++) {
-                Organism* organism = *it;
-                if (organism == nullptr) {
+                if (*it == nullptr) {
                     continue;
                 }
+                Organism* organism = *it;
                 if (isDead(organism)) {
-                    debug << "Organism " << organism << " (" << organism->id << ") is [already] dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                    #if DEBUG
+                        debug << "Organism " << organism << " (" << organism->id << ") is [already] dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                    #endif
                     sista::Coordinates coordinates = organism->getCoordinates();
-                    if (field->getPawn(coordinates) == organism)
+                    if (*field->getPawnIterator(coordinates) == organism)
                         field->removePawn(coordinates);
                     continue;
                 }
-                if (organism->left <= 0 || organism->health <= 0) {
-                    debug << "Organism " << organism << " (" << organism->id << ") is dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                // Check of asphyxiation
+                int free_spaces = freeSpacesAround(organism);
+                if (!free_spaces) {
+                    #if DEBUG
+                        debug << "Organism" << organism << " (" << organism->id << ") is asphyxiated with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                    #endif
                     Organism::dead_organisms.push_back(organism);
                     continue;
+                } else if (free_spaces == 1 && organism->stats.age > 50) {
+                    organism->health -= 5;
                 }
-                // Check of asphyxiation
-                if (isAsphyxiated(organism)) {
-                    debug << "Organism " << organism << " (" << organism->id << ") is asphyxiated with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                // Check of death and aging
+                if (organism->left <= 0 || organism->health <= 0) {
+                    #if DEBUG
+                        debug << "Organism" << organism << " (" << organism->id << ") is dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                    #endif
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }

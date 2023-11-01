@@ -3,6 +3,7 @@
 #include <vector> // std::vector
 #include <queue> // std::queue, std::priority_queue
 #include <algorithm> // std::sort
+#include <string>
 #include "pawn.hpp" // Pawn
 #include "border.hpp" // Border
 #include "cursor.hpp" // Cursor
@@ -15,10 +16,10 @@ namespace sista {
     protected:
         std::vector<std::vector<Pawn*>> pawns; // Matrix of pawns
         Cursor cursor; // Cursor
-        int width; // Width of the matrix
-        int height; // Height of the matrix
 
     public:
+        int width; // Width of the matrix
+        int height; // Height of the matrix
         void clear() { // Clear the matrix
             for (auto& row: pawns) // For each row
                 for (auto& pawn: row) // For each pawn
@@ -245,6 +246,23 @@ namespace sista {
             movePawn(getPawn(y, x), newY, newX);
         }
 
+        std::vector<Pawn*>::iterator getPawnIterator(Coordinates& coordinates) { // Get the iterator of the pawn at the coordinates
+            for (std::vector<std::vector<Pawn*>>::iterator row = pawns.begin(); row != pawns.end(); row++) { // For each row
+                if (row - pawns.begin() == coordinates.y) { // If the row is the same...
+                    for (std::vector<Pawn*>::iterator pawn = row->begin(); pawn != row->end(); pawn++) { // For each pawn
+                        if (pawn - row->begin() == coordinates.x) { // If the pawn is the same...
+                            return pawn; // Return the iterator of the pawn
+                        }
+                    }
+                }
+            }
+            if (isOutOfBounds(coordinates)) // If the coordinates are out of bounds
+                throw std::out_of_range(
+                    std::string("Coordinates {") + std::to_string(coordinates.y)
+                    + std::string(", ") + std::to_string(coordinates.x) + std::string("} are out of bounds")
+                );
+            return pawns.back().end(); // Return the end iterator
+        }
         Pawn* getPawn(Coordinates& coordinates) { // Get the pawn at the coordinates
             return pawns[coordinates.y][coordinates.x]; // Return the pawn at the coordinates
         }
