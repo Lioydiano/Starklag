@@ -293,7 +293,11 @@ int main() {
             #endif
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
-                void* organism_ = Organism::organisms[o];
+                void* organism_;
+                if (o > 100) {
+                    organism_ = &*Organism::organisms.back();
+                } else
+                    organism_ = Organism::organisms[o];
                 if (organism_ == nullptr) {
                     continue;
                 }
@@ -314,7 +318,9 @@ int main() {
                 std::cout << " " << organism->id << " (" << organism->stats.age << "): " << organism->health << "hp, " << organism->left << " left,";
                 std::cout << " DNA: ";
                 organism->dna->printInline();
-                std::cout << " {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}"; 
+                std::cout << " {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}   ";
+                if (o > 100)
+                    break; // Don't print all the organisms over each other
             }
             std::cout << std::flush;
         }
