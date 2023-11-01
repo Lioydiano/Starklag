@@ -302,6 +302,12 @@ int main() {
                     continue;
                 }
                 cursor.set({(short unsigned)o, 54});
+                #if WIN32
+                    ANSI::reset();
+                    char void_[90] = {' '};
+                    std::cout << void_;
+                    cursor.set({(short unsigned)o, 54});
+                #endif
                 std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
                 std::cout << " DNA: ";
                 organism->dna->printInline();

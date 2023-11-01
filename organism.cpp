@@ -146,7 +146,8 @@ void Organism::breed(Organism* other) {
     if (stats.age < 10 || other->stats.age < 10)
         return;
     // The youngest organism is more likely to breed
-    if (stats.age > other->stats.age && random_engine() % 3) {
+    if (stats.age > other->stats.age && (random_engine() % 3 != 0)) {
+        debug << this << " is younger than " << other << std::endl;
         return other->breed(this);
     }
     if (!breedable(other))
