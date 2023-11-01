@@ -101,7 +101,7 @@ int main() {
         );
         ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
         ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
-        if ((int)foreground_color == (int)background_color) {
+        if ((int)foreground_color == (int)background_color - 10) {
             foreground_color = ANSI::ForegroundColor::F_WHITE;
             background_color = ANSI::BackgroundColor::B_BLACK;
         }
@@ -308,7 +308,10 @@ int main() {
                     std::cout << void_;
                     cursor.set({(short unsigned)o, 54});
                 #endif
-                std::cout << "Organism " << organism->id << " (" << organism->stats.age << "): " << organism->health << " health, " << organism->left << " left";
+                std::cout << "Organism ";
+                organism->print();
+                ANSI::reset();
+                std::cout << " " << organism->id << " (" << organism->stats.age << "): " << organism->health << "hp, " << organism->left << " left,";
                 std::cout << " DNA: ";
                 organism->dna->printInline();
                 std::cout << " {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}"; 
