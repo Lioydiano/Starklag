@@ -285,12 +285,13 @@ int main() {
                 Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
             }
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
-
+            #if __linux__ or __APPLE__
+                ANSI::reset();
+                sista::clearScreen();
+                ANSI::reset();
+                field->print(border);
+            #endif
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-            ANSI::reset();
-            sista::clearScreen();
-            ANSI::reset();
-            field->print(border);
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
                 void* organism_ = Organism::organisms[o];
                 if (organism_ == nullptr) {
@@ -308,6 +309,12 @@ int main() {
             }
             std::cout << std::flush;
         }
+        #if WIN32
+            ANSI::reset();
+            sista::clearScreen();
+            ANSI::reset();
+            field->print(border);
+        #endif
     }
     for (Organism* organism : Organism::organisms) {
         delete organism;
