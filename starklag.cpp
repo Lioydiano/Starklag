@@ -61,25 +61,13 @@ int freeSpacesAround(Organism* organism) {
     neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
     neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
     neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
-    #if DEBUG
-        debug << "Checking organism " << organism << " (" << organism->id << ") at {" << coordinates.y << ", " << coordinates.x << "}" << std::endl;
-    #endif
     int free_spaces = 0;
     for (sista::Coordinates coordinates : neighbor_coordinates) {
-        #if DEBUG
-            debug << "\tChecking {" << coordinates.y << ", " << coordinates.x << "}" << std::endl;
-        #endif
         if (field->isOutOfBounds(coordinates)) {
-            #if DEBUG
-                debug << "\t\tOut of bounds which end in {" << field->height - 1 << ", " << field->width - 1 << "}" << std::endl;
-            #endif
             continue;
         }
         std::vector<sista::Pawn*>::iterator pawn = field->getPawnIterator(coordinates);
         if (*pawn == nullptr) {
-            #if DEBUG
-                debug << "\t\tFree space" << std::endl;
-            #endif
             free_spaces++;
         }
     }
