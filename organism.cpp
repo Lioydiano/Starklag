@@ -189,42 +189,48 @@ void Organism::breed(Organism* other) {
     for (Organism* child : children) {
         sista::Coordinates new_coordinates = coordinates;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-        Range r_i, r_j;
-        int random = random_engine() % 4;
-        if (random % 4 == 0) {
-            r_i = {-10, 10, 1};
-            r_j = {-10, 10, 1};
-        } else if (random % 4 == 1) {
-            r_i = {-10, 10, 1};
-            r_j = {10, -10, -1};
-        } else if (random % 4 == 2) {
-            r_i = {10, -10, -1};
-            r_j = {-10, 10, 1};
-        } else if (random % 4 == 3) {
-            r_i = {10, -10, -1};
-            r_j = {10, -10, -1};
-        }
-        for (int i = r_i.start; i < r_i.stop; i+=r_i.step) {
-            for (int j = r_j.start; j < r_j.stop; j+=r_j.step) {
+
+        int random = rand() % 4;
+        for (int i = -10; i < 10; i++) {
+            for (int j = -10; j < 10; j++) {
+                if (i == 0 && j == 0) {
+                    continue;
+                }
+                if (random == 0) {
+                    i = -i;
+                } else if (random == 1) {
+                    j = -j;
+                } else if (random == 2) {
+                    i = -i;
+                    j = -j;
+                }
                 new_coordinates.y = coordinates.y + i;
                 new_coordinates.x = coordinates.x + j;
                 if (field->isOutOfBounds(new_coordinates)) {
                     continue;
                 }
                 if (field->isFree(new_coordinates)) {
+                    #if DEBUG
+                        debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
+                    #endif
                     goto found;
                 }
                 std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::duration<double>>(end - begin).count() > 0.01) {
-                    goto label;
+                if (std::chrono::duration_cast<std::chrono::duration<double>>(end - begin).count() > 0.1) {
+                    goto not_found;
                 }
             }
         }
+        goto not_found;
         found:
         child->coordinates = new_coordinates;
         field->addPawn((sista::Pawn*)child);
         continue;
-        label:
+        not_found:
+        #if DEBUG
+            debug << "\t" << child << " couldn't find a place to be born" << std::endl;
+        #endif
+        organisms.erase(std::find(organisms.begin(), organisms.end(), child));
         children.erase(std::find(children.begin(), children.end(), child));
         delete child;
         return; // There's no space for other children

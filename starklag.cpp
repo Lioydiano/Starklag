@@ -145,7 +145,8 @@ int main() {
     Organism::dead_organisms.clear();
 
     bool paused = false;
-    std::thread input_thread([&paused]() {
+    bool quit = false;
+    std::thread input_thread([&paused, &quit]() {
         while (true) {
             char c;
             #if defined(_WIN32) or defined(__linux__)
@@ -153,13 +154,13 @@ int main() {
             #elif __APPLE__
                 c = getchar();
             #endif
-            if (paused) {
+            if (c == 'r') {
                 std::string resume = "resume";
                 bool resume_ = true;
                 for (int i = 0; i < (int)(resume.size()); i++) {
                     if (c != resume[i]) {
                         resume_ = false;
-                        return;
+                        break;
                     }
                     #if defined(_WIN32) or defined(__linux__)
                         c = getch();
@@ -170,13 +171,13 @@ int main() {
                 if (resume_) {
                     paused = false;
                 }
-            } else {
+            } else if (c == 'p') {
                 std::string pause = "pause";
                 bool pause_ = true;
                 for (int i = 0; i < (int)(pause.size()); i++) {
                     if (c != pause[i]) {
                         pause_ = false;
-                        return;
+                        break;
                     }
                     #if defined(_WIN32) or defined(__linux__)
                         c = getch();
@@ -187,10 +188,28 @@ int main() {
                 if (pause_) {
                     paused = true;
                 }
+            } else if (c == 'q') {
+                std::string quit_string = "quit";
+                bool quit_ = true;
+                for (int i = 0; i < (int)(quit_string.size()); i++) {
+                    if (c != quit_string[i]) {
+                        quit_ = false;
+                        break;
+                    }
+                    #if defined(_WIN32) or defined(__linux__)
+                        c = getch();
+                    #elif __APPLE__
+                        c = getchar();
+                    #endif
+                }
+                if (quit_) {
+                    quit = true;
+                    return;
+                }
             }
         }
     });
-    for (int _ = 0; _ < 100; _++) {
+    while (!quit) {
         for (int i = 0; i < 10; i++) {
             while (paused) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -214,7 +233,7 @@ int main() {
                 int free_spaces = freeSpacesAround(organism);
                 if (!free_spaces) {
                     #if DEBUG
-                        debug << "Organism" << organism << " (" << organism->id << ") is asphyxiated with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                        debug << "Organism " << organism << " (" << organism->id << ") is asphyxiated with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     #endif
                     Organism::dead_organisms.push_back(organism);
                     continue;
@@ -224,7 +243,7 @@ int main() {
                 // Check of death and aging
                 if (organism->left <= 0 || organism->health <= 0) {
                     #if DEBUG
-                        debug << "Organism" << organism << " (" << organism->id << ") is dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
+                        debug << "Organism " << organism << " (" << organism->id << ") is dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     #endif
                     Organism::dead_organisms.push_back(organism);
                     continue;
@@ -323,6 +342,9 @@ int main() {
                     break; // Don't print all the organisms over each other
             }
             std::cout << std::flush;
+            if (quit) {
+                break;
+            }
         }
         #if WIN32
             ANSI::reset();
@@ -350,4 +372,5 @@ int main() {
         // noecho.c_lflag &= ~ECHO;, noecho.c_lflag |= ECHO;
         tcsetattr(0, TCSAFLUSH, &orig_termios);
     #endif
+    return 0;
 }
