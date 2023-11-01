@@ -285,13 +285,13 @@ int main() {
                 Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
             }
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             #if __linux__ or __APPLE__
                 ANSI::reset();
                 sista::clearScreen();
                 ANSI::reset();
                 field->print(border);
             #endif
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
                 void* organism_;
                 if (o > 100) {
