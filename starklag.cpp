@@ -391,7 +391,7 @@ int main() {
                     continue;
                 }
                 cursor.set({(short unsigned)o, 54});
-                #if WIN32
+                #if _WIN32
                     ANSI::reset();
                     char void_[90] = {' '};
                     std::cout << void_;
@@ -412,7 +412,7 @@ int main() {
                 break;
             }
         }
-        #if WIN32
+        #if _WIN32
             ANSI::reset();
             sista::clearScreen();
             ANSI::reset();
