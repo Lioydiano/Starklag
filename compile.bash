@@ -1,0 +1,1 @@
+g++ starklag.cpp -o starklag -std=c++17

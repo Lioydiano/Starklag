@@ -1,4 +1,6 @@
 #include "dna.hpp"
+#include <iostream>
+#include <fstream>
 
 
 std::random_device random_device;
