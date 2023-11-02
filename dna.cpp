@@ -24,6 +24,22 @@ std::vector<Gene> genes = {
     SPEED, STRENGTH, FERTILITY, NATURE,
     LIFESPAN, ATTACK, DEFENSE, VISION
 };
+std::unordered_map<Gene, std::string> gene_to_string = {
+    {Gene::SPEED, "speed"}, {Gene::STRENGTH, "strength"},
+    {Gene::FERTILITY, "fertility"}, {Gene::NATURE, "nature"},
+    {Gene::LIFESPAN, "lifespan"}, {Gene::ATTACK, "attack"},
+    {Gene::DEFENSE, "defense"}, {Gene::VISION, "vision"}
+};
+std::unordered_map<Gene, std::unordered_map<int, std::string>> allele_to_string = {
+    {Gene::SPEED, {{Speed::SLOW, "slow"}, {Speed::MEDIUM, "medium"}, {Speed::FAST, "fast"}}},
+    {Gene::STRENGTH, {{Strength::WEAK, "weak"}, {Strength::MODERATE, "moderate"}, {Strength::STRONG, "strong"}}},
+    {Gene::FERTILITY, {{Fertility::LOW, "low"}, {Fertility::MEDIAN, "median"}, {Fertility::HIGH, "high"}}},
+    {Gene::NATURE, {{Nature::AGGRESSIVE, "aggressive"}, {Nature::PASSIVE, "passive"}, {Nature::NEUTRAL, "neutral"}}},
+    {Gene::LIFESPAN, {{LifeSpan::SHORT_, "short"}, {LifeSpan::AVERAGE, "average"}, {LifeSpan::LONG_, "long"}}},
+    {Gene::ATTACK, {{1, "weak"}, {2, "moderate"}, {3, "strong"}}},
+    {Gene::DEFENSE, {{1, "weak"}, {2, "moderate"}, {3, "strong"}}},
+    {Gene::VISION, {{Vision::NEAR, "near"}, {Vision::CLEAR, "clear"}, {Vision::FAR, "far"}}}
+};
 
 
 Allele::Allele(Gene name_, int value_): name(name_), value(value_) {}
