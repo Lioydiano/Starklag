@@ -41,7 +41,7 @@ g++ -std=c++17 starklag.cpp -o starklag
 First, you should create a folder like `demo/1`, let's call it `demo/{i}`, and navigate to it.
 
 ```bash
-./starklag
+../../starklag
 ```
 
 This will make `demo/{i}` the folder where the simulation data will be stored.
@@ -76,17 +76,11 @@ This is the content of the folder after the simulation has ended and the plottin
 
 ### Running the simulation
 
-The `start.bash` script is a simple script that runs the simulation and then plots the data.
-
-```bash
-./start.bash
-```
-
 Anyway, you should better do the two steps separately, since starklag's simulations don't always end as expected.
 
 ```bash
-./starklag
-cd ..
+../../starklag
+cd ../..
 python3 graphics.py <insert-{i} here>
 ```
 
