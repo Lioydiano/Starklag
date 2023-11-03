@@ -1,4 +1,3 @@
-import mpl_toolkits.mplot3d as a3
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
