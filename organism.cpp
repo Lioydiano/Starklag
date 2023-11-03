@@ -2,7 +2,6 @@
 #include "dna.cpp"
 #include <random>
 #include <chrono>
-#include <thread>
 #define DEBUG 1
 
 
