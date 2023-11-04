@@ -211,3 +211,5 @@ Be sure to have put in `demo/{i}` the `organisms_set.sklg` from which data will 
 25 Z 34 46 5 35 23 377 10 1 1 1 2 2 1 0 1 
 26 X 37 41 17 20 2 398 30 2 3 1 3 2 1 1 0 
 ```
+
+Be sure to duplicate the directory if you want to run more simulations from the same save.
