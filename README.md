@@ -91,6 +91,7 @@ As of `v0.4`, you can only input the following...
 - *"pause`<ENTER>`"* to pause the simulation
 - *"resume`<ENTER>`"* to resume the simulation
 - *"quit`<ENTER>`"* to quit the simulation
+- *"save`<ENTER>`"* to save the simulation to `organisms_set.sklg`
 
 ### Output
 
@@ -166,4 +167,47 @@ Organism W 22 (9): 10hp, 391 left, DNA: {1 : 0 : 2 : 2 : 2 : 0 : 1 : 0} {14, 21}
 Organism X 23 (9): 10hp, 391 left, DNA: {0 : 1 : 1 : 2 : 1 : 1 : 1 : 1} {28, 2}
 Organism Y 24 (9): 20hp, 391 left, DNA: {1 : 0 : 1 : 2 : 1 : 0 : 2 : 0} {18, 43}
 Organism Z 25 (9): 10hp, 391 left, DNA: {0 : 1 : 1 : 2 : 3 : 2 : 2 : 2} {20, 3}
+```
+
+### Load a simulation
+
+You should do the same as for running a new simulation, but...
+
+```bash
+../../starklag --load
+cd ../..
+python3 graphics.py <insert-{i} here>
+```
+
+...in this case you add `--load`.
+
+Be sure to have put in `demo/{i}` the `organisms_set.sklg` from which data will be loaded.
+
+```txt
+0 A 34 42 22 16 23 377 10 1 1 0 4 2 1 1 2 
+1 B 37 46 7 45 23 1577 20 1 2 1 3 4 0 1 0 
+2 C 32 45 11 27 23 377 30 2 3 1 0 2 1 1 2 
+3 D 37 42 9 4 23 77 10 1 1 2 2 1 1 3 1 
+4 E 35 46 16 4 23 77 10 1 1 1 1 1 2 0 1 
+5 F 34 41 21 21 23 877 10 1 1 1 2 3 2 1 0 
+6 G 31 45 20 10 23 377 10 0 1 1 3 2 0 3 1 
+7 H 33 40 23 47 23 877 10 0 1 1 3 3 1 0 1 
+8 I 35 44 20 47 23 77 10 2 1 0 1 1 0 1 2 
+9 J 34 41 6 40 23 377 10 2 1 2 2 2 1 2 2 
+10 K 37 45 7 38 23 377 10 1 1 1 2 2 1 2 1 
+11 L 37 44 13 27 23 877 20 0 2 0 2 3 1 1 0 
+12 M 30 45 10 41 23 877 10 2 1 2 2 3 1 1 3 
+13 N 31 45 14 29 23 377 6 0 1 0 1 2 2 1 1 
+14 O 37 40 9 31 23 377 10 0 1 2 2 2 0 3 2 
+15 P 31 42 5 42 23 377 10 1 1 1 1 2 0 1 0 
+16 Q 35 44 22 19 23 877 10 1 1 1 2 3 1 0 3 
+18 S 37 46 17 42 23 377 10 1 1 2 0 2 1 0 2 
+19 T 37 41 20 49 23 377 20 2 2 0 1 2 1 1 2 
+20 U 31 44 19 18 23 377 20 1 2 3 2 2 2 1 1 
+21 V 35 46 1 36 23 377 10 1 1 2 2 2 0 1 1 
+22 W 35 47 10 0 23 877 10 1 1 1 2 3 1 1 1 
+23 X 37 41 28 12 23 377 10 1 1 1 3 2 1 2 0 
+24 Y 34 41 14 35 23 77 20 1 2 1 2 1 1 0 1 
+25 Z 34 46 5 35 23 377 10 1 1 1 2 2 1 0 1 
+26 X 37 41 17 20 2 398 30 2 3 1 3 2 1 1 0 
 ```
