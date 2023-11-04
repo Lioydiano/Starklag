@@ -1,4 +1,5 @@
 #include "stats.cpp"
+#include <string.h>
 #include <thread>
 #ifdef _WIN32
     #include <windows.h>
@@ -47,39 +48,24 @@
 #endif
 
 
-bool isDead(Organism* organism) {
-    for (std::vector<Organism*>::iterator it = Organism::dead_organisms.begin(); it != Organism::dead_organisms.end(); it++) {
-        if (*it == organism) {
-            return true;
-        }
-    }
-    return false;
-}
-int freeSpacesAround(Organism* organism) {
-    sista::Coordinates coordinates = organism->getCoordinates();
-    sista::Coordinates neighbor_coordinates[4];
-    neighbor_coordinates[0] = sista::Coordinates(coordinates.y-1, coordinates.x);
-    neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
-    neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
-    neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
-    int free_spaces = 0;
-    for (sista::Coordinates coordinates : neighbor_coordinates) {
-        if (field->isOutOfBounds(coordinates)) {
-            continue;
-        }
-        std::vector<sista::Pawn*>::iterator pawn = field->getPawnIterator(coordinates);
-        if (*pawn == nullptr) {
-            free_spaces++;
-        }
-    }
-    return free_spaces;
-}
+void saveOrganisms();
+void loadOrganisms();
+void input(bool&, bool&);
+bool isDead(Organism*);
+int freeSpacesAround(Organism*);
 
 
-int main() {
+int main(int argc, char* argv[]) {
     #ifdef __APPLE__
         term_echooff();
     #endif
+    std::cout << "\x1b]2;Starklag\x07"; // Set window title
+    if (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))) {
+        sista::clearScreen();
+        std::cout << "\x1b[38;5;255mStarklag - The real-time evolution simulator\x1b[38;5;252m\n";
+        std::cout << "https://github.com/Lioydiano/Starklag#usage" << std::endl;
+        return 0;
+    }
     sista::Border border(
         '#', ANSI::Settings(
             ANSI::ForegroundColor::F_WHITE,
@@ -92,52 +78,60 @@ int main() {
     field = &field_;
     sista::Cursor cursor;
 
-    // Create the organisms
-    for (int i = 0; i < 26; i++) {
-        Organism* organism;
-        char symbol = 'A' + i;
-        sista::Coordinates coordinates(
-            (short unsigned)(random_engine() % 30),
-            (short unsigned)(random_engine() % 50)
-        );
-        ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
-        ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
-        if ((int)foreground_color == (int)background_color - 10) {
-            foreground_color = ANSI::ForegroundColor::F_WHITE;
-            background_color = ANSI::BackgroundColor::B_BLACK;
+    if (argc == 2) {
+        if (!strcmp(argv[1], "-l") || !strcmp(argv[1], "--load")) {
+            loadOrganisms();
+        } else {
+            std::cout << "Invalid arguments. Use \x1b[38;5;245mstarklag\x1b[38;5;252m \x1b[38;5;126m-h\x1b[38;5;252m for help." << std::endl;
         }
-        ANSI::Settings settings(
-            foreground_color,
-            background_color,
-            ANSI::Attribute::UNDERSCORE
-        );
-        DNA* dna = new DNA();
-        for (int j = 0; j < (int)(genes.size()); j++) {
-            for (int k = 0; k < (int)(random_engine() % 3); k++) {
-                dna->alleles[j]->rational_mutate();
-            }
-        }
-        Statistics stats{0, 0, {nullptr, nullptr}, {}};
-        organism = new Organism(symbol, coordinates, settings, dna, stats);
-        sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        field_.addPawn(pawn_);
-    }
-
-    // Create the food
-    for (int i = 0; i < 40; i++) {
-        Food* food;
-        sista::Coordinates coordinates;
-        while (true) {
-            coordinates = {
+    } else {
+        // Create the organisms
+        for (int i = 0; i < 26; i++) {
+            Organism* organism;
+            char symbol = 'A' + i;
+            sista::Coordinates coordinates(
                 (short unsigned)(random_engine() % 30),
                 (short unsigned)(random_engine() % 50)
-            };
-            if (*field_.getPawnIterator(coordinates) == nullptr) {
-                break;
+            );
+            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
+            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
+            if ((int)foreground_color == (int)background_color - 10) {
+                foreground_color = ANSI::ForegroundColor::F_WHITE;
+                background_color = ANSI::BackgroundColor::B_BLACK;
             }
+            ANSI::Settings settings(
+                foreground_color,
+                background_color,
+                ANSI::Attribute::UNDERSCORE
+            );
+            DNA* dna = new DNA();
+            for (int j = 0; j < (int)(genes.size()); j++) {
+                for (int k = 0; k < (int)(random_engine() % 3); k++) {
+                    dna->alleles[j]->rational_mutate();
+                }
+            }
+            Statistics stats{0, 0, {nullptr, nullptr}, {}};
+            organism = new Organism(symbol, coordinates, settings, dna, stats);
+            sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
+            field_.addPawn(pawn_);
         }
-        food = new Food(coordinates);
-        field_.addPawn(food);
+
+        // Create the food
+        for (int i = 0; i < 40; i++) {
+            Food* food;
+            sista::Coordinates coordinates;
+            while (true) {
+                coordinates = {
+                    (short unsigned)(random_engine() % 30),
+                    (short unsigned)(random_engine() % 50)
+                };
+                if (*field_.getPawnIterator(coordinates) == nullptr) {
+                    break;
+                }
+            }
+            food = new Food(coordinates);
+            field_.addPawn(food);
+        }
     }
 
     // Start the simulation
@@ -147,69 +141,7 @@ int main() {
 
     bool paused = false;
     bool quit = false;
-    std::thread input_thread([&paused, &quit]() {
-        while (true) {
-            char c;
-            #if defined(_WIN32) or defined(__linux__)
-                c = getch();
-            #elif __APPLE__
-                c = getchar();
-            #endif
-            if (c == 'r') {
-                std::string resume = "resume";
-                bool resume_ = true;
-                for (int i = 0; i < (int)(resume.size()); i++) {
-                    if (c != resume[i]) {
-                        resume_ = false;
-                        break;
-                    }
-                    #if defined(_WIN32) or defined(__linux__)
-                        c = getch();
-                    #elif __APPLE__
-                        c = getchar();
-                    #endif
-                }
-                if (resume_) {
-                    paused = false;
-                }
-            } else if (c == 'p') {
-                std::string pause = "pause";
-                bool pause_ = true;
-                for (int i = 0; i < (int)(pause.size()); i++) {
-                    if (c != pause[i]) {
-                        pause_ = false;
-                        break;
-                    }
-                    #if defined(_WIN32) or defined(__linux__)
-                        c = getch();
-                    #elif __APPLE__
-                        c = getchar();
-                    #endif
-                }
-                if (pause_) {
-                    paused = true;
-                }
-            } else if (c == 'q') {
-                std::string quit_string = "quit";
-                bool quit_ = true;
-                for (int i = 0; i < (int)(quit_string.size()); i++) {
-                    if (c != quit_string[i]) {
-                        quit_ = false;
-                        break;
-                    }
-                    #if defined(_WIN32) or defined(__linux__)
-                        c = getch();
-                    #elif __APPLE__
-                        c = getchar();
-                    #endif
-                }
-                if (quit_) {
-                    quit = true;
-                    return;
-                }
-            }
-        }
-    });
+    std::thread input_thread(input, std::ref(paused), std::ref(quit));
 
     for (int _ = 0; !quit; _++) {
         dumpStats(_);
@@ -376,4 +308,174 @@ int main() {
         tcsetattr(0, TCSAFLUSH, &orig_termios);
     #endif
     return 0;
+}
+
+
+void saveOrganisms() {
+    std::ofstream organisms("organisms_set.sklg");
+    for (Organism* organism : Organism::organisms) {
+        // Format: id, symbol, foreground, background, ...
+        organisms << organism->id << ' ' << organism->getSymbol() << ' ' << organism->getSettings().foregroundColor << ' ' << organism->getSettings().backgroundColor << ' ';
+        // ..., y, x, age, left, health, ...
+        organisms << organism->getCoordinates().y << ' ' << organism->getCoordinates().x << ' ' << organism->stats.age << ' ' << organism->left << ' ' << organism->health << ' ';
+        // ..., DNA
+        for (Gene gene : genes) {
+            organisms << organism->dna->genes[gene]->value << ' ';
+        }
+        organisms << '\n';
+    }
+    organisms << std::flush;
+}
+void loadOrganisms() {
+    // Load scenario from file
+    std::ifstream sklg_("organisms_set.sklg");
+    int organisms_number = 0;
+    std::string line;
+    while (getline(sklg_, line)) {
+        organisms_number++;
+    }
+    sklg_.close();
+    std::ifstream sklg("organisms_set.sklg");
+    for (int i = 0; i < organisms_number; i++) {
+        Organism* organism;
+        // Format: id, symbol, foreground, background, ...
+        int id, foreground, background;
+        char symbol;
+        sklg >> id >> symbol >> foreground >> background;
+        // ..., y, x, age, left, health, ...
+        sista::Coordinates coord;
+        int age, left, health;
+        sklg >> coord.y >> coord.x >> age >> left >> health;
+        // ..., DNA, ...
+        DNA* dna = new DNA(true);
+        for (Gene gene : genes) {
+            int value;
+            sklg >> value;
+            Allele* allele = new Allele(gene, value);
+            dna->alleles.push_back(allele);
+            dna->genes[gene] = allele;
+        }
+        Statistics void_stats{age, 0, {nullptr, nullptr}, {}};
+        organism = new Organism(
+            symbol, coord, ANSI::Settings(
+                (ANSI::ForegroundColor)foreground,
+                (ANSI::BackgroundColor)background,
+                ANSI::Attribute::BRIGHT
+            ), dna, void_stats
+        );
+        organism->health = health;
+        organism->left = left;
+        organism->id = id;
+        sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
+        field->addPawn(pawn_);
+    }
+}
+
+void input(bool& paused, bool& quit) {
+    while (true) {
+        char c;
+        #if defined(_WIN32) or defined(__linux__)
+            c = getch();
+        #elif __APPLE__
+            c = getchar();
+        #endif
+        if (c == 'r') {
+            std::string resume = "resume";
+            bool resume_ = true;
+            for (int i = 0; i < (int)(resume.size()); i++) {
+                if (c != resume[i]) {
+                    resume_ = false;
+                    break;
+                }
+                #if defined(_WIN32) or defined(__linux__)
+                    c = getch();
+                #elif __APPLE__
+                    c = getchar();
+                #endif
+            }
+            if (resume_) {
+                paused = false;
+            }
+        } else if (c == 'p') {
+            std::string pause = "pause";
+            bool pause_ = true;
+            for (int i = 0; i < (int)(pause.size()); i++) {
+                if (c != pause[i]) {
+                    pause_ = false;
+                    break;
+                }
+                #if defined(_WIN32) or defined(__linux__)
+                    c = getch();
+                #elif __APPLE__
+                    c = getchar();
+                #endif
+            }
+            if (pause_) {
+                paused = true;
+            }
+        } else if (c == 'q') {
+            std::string quit_string = "quit";
+            bool quit_ = true;
+            for (int i = 0; i < (int)(quit_string.size()); i++) {
+                if (c != quit_string[i]) {
+                    quit_ = false;
+                    break;
+                }
+                #if defined(_WIN32) or defined(__linux__)
+                    c = getch();
+                #elif __APPLE__
+                    c = getchar();
+                #endif
+            }
+            if (quit_) {
+                quit = true;
+                return;
+            }
+        } else if (c == 's') {
+            std::string save_string = "save";
+            bool save_ = true;
+            for (int i = 0; i < (int)(save_string.size()); i++) {
+                if (c != save_string[i]) {
+                    save_ = false;
+                    break;
+                }
+                #if defined(_WIN32) or defined(__linux__)
+                    c = getch();
+                #elif __APPLE__
+                    c = getchar();
+                #endif
+            }
+            if (save_) {
+                saveOrganisms();
+            }
+        }
+    }
+}
+
+bool isDead(Organism* organism) {
+    for (std::vector<Organism*>::iterator it = Organism::dead_organisms.begin(); it != Organism::dead_organisms.end(); it++) {
+        if (*it == organism) {
+            return true;
+        }
+    }
+    return false;
+}
+int freeSpacesAround(Organism* organism) {
+    sista::Coordinates coordinates = organism->getCoordinates();
+    sista::Coordinates neighbor_coordinates[4];
+    neighbor_coordinates[0] = sista::Coordinates(coordinates.y-1, coordinates.x);
+    neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
+    neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
+    neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
+    int free_spaces = 0;
+    for (sista::Coordinates coordinates : neighbor_coordinates) {
+        if (field->isOutOfBounds(coordinates)) {
+            continue;
+        }
+        std::vector<sista::Pawn*>::iterator pawn = field->getPawnIterator(coordinates);
+        if (*pawn == nullptr) {
+            free_spaces++;
+        }
+    }
+    return free_spaces;
 }

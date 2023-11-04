@@ -38,6 +38,7 @@ public:
     DNA(std::unordered_map<Gene, Allele*>);
     DNA(std::vector<Gene>);
     DNA(std::unordered_map<Gene, int>);
+    DNA(bool);
     DNA();
     ~DNA();
 

@@ -16,6 +16,8 @@ if __name__ == '__main__':
                 data = [line.split(',') for line in data]
                 # Remove the last element of each line, which is an empty string
                 data = [line[:-1] for line in data]
+                # Remove empty lines (may be present when "starklag --load" since v0.7)
+                data = [data[i] for i in range(len(data)) if data[i] != []]
                 # Data are in the form: [["allele:value", "allele:value", ...], ...]
                 labels: list[str] = []
                 for i in range(len(data)): # iterate over each line

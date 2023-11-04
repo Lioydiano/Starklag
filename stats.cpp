@@ -1,17 +1,17 @@
 #include "organism.cpp"
 
 
-std::ofstream dna_stats("dna-stats.txt");
-std::ofstream organisms_count("organisms-count.txt");
+std::ofstream dna_stats("dna-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream organisms_count("organisms-count.txt", std::fstream::out | std::fstream::app);
 
-std::ofstream speed_stats("speed-stats.txt");
-std::ofstream strength_stats("strength-stats.txt");
-std::ofstream fertility_stats("fertility-stats.txt");
-std::ofstream nature_stats("nature-stats.txt");
-std::ofstream lifespan_stats("lifespan-stats.txt");
-std::ofstream attack_stats("attack-stats.txt");
-std::ofstream defense_stats("defense-stats.txt");
-std::ofstream vision_stats("vision-stats.txt");
+std::ofstream speed_stats("speed-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream strength_stats("strength-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream fertility_stats("fertility-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream nature_stats("nature-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream lifespan_stats("lifespan-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream attack_stats("attack-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream defense_stats("defense-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream vision_stats("vision-stats.txt", std::fstream::out | std::fstream::app);
 std::unordered_map<Gene, std::ofstream*> gene_stats = {
     {Gene::SPEED, &speed_stats},
     {Gene::STRENGTH, &strength_stats},
@@ -22,14 +22,14 @@ std::unordered_map<Gene, std::ofstream*> gene_stats = {
     {Gene::DEFENSE, &defense_stats},
     {Gene::VISION, &vision_stats}
 };
-std::ofstream speed_alleles_stats("speed-alleles-stats.txt");
-std::ofstream strength_alleles_stats("strength-alleles-stats.txt");
-std::ofstream fertility_alleles_stats("fertility-alleles-stats.txt");
-std::ofstream nature_alleles_stats("nature-alleles-stats.txt");
-std::ofstream lifespan_alleles_stats("lifespan-alleles-stats.txt");
-std::ofstream attack_alleles_stats("attack-alleles-stats.txt");
-std::ofstream defense_alleles_stats("defense-alleles-stats.txt");
-std::ofstream vision_alleles_stats("vision-alleles-stats.txt");
+std::ofstream speed_alleles_stats("speed-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream strength_alleles_stats("strength-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream fertility_alleles_stats("fertility-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream nature_alleles_stats("nature-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream lifespan_alleles_stats("lifespan-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream attack_alleles_stats("attack-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream defense_alleles_stats("defense-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream vision_alleles_stats("vision-alleles-stats.txt", std::fstream::out | std::fstream::app);
 std::unordered_map<Gene, std::ofstream*> alleles_stats = {
     {Gene::SPEED, &speed_alleles_stats},
     {Gene::STRENGTH, &strength_alleles_stats},

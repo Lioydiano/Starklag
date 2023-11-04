@@ -121,6 +121,7 @@ DNA::DNA(std::unordered_map<Gene, int> genes_) {
         genes[gene.first] = allele;
     }
 }
+DNA::DNA(bool void_flag) {}
 DNA::DNA() {
     for (std::pair<Gene, int> gene : default_allele_value) {
         Allele* allele = new Allele(gene.first, gene.second);
