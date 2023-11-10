@@ -138,8 +138,8 @@ int main(int argc, char* argv[]) {
     sista::clearScreen();
     field->print(border);
     Organism::dead_organisms.clear();
-    globals::oxygen = Organism::organisms.size() * 2;
-    globals::carbon_dioxide = Organism::organisms.size() * 2;
+    globals::oxygen = Organism::organisms.size() * 20;
+    globals::carbon_dioxide = Organism::organisms.size() * 20;
 
     bool paused = false;
     bool quit = false;
@@ -177,8 +177,6 @@ int main(int argc, char* argv[]) {
                 } else if (free_spaces == 1 && organism->stats.age > 50) {
                     organism->health -= 5;
                 }
-                // The organism has to breathe
-                organism->breathe();
                 // Check of death and aging
                 if (organism->left <= 0 || organism->health <= 0) {
                     #if DEBUG
@@ -193,6 +191,8 @@ int main(int argc, char* argv[]) {
                 organism->left--;
                 if (organism->health < organism->dna->genes.at(Gene::STRENGTH)->value*5)
                     organism->left--; // If the organism is weak, it will die faster
+                // The organism has to breathe
+                organism->breathe();
                 organism->move();
             }
             // All the organisms may meet
@@ -297,6 +297,10 @@ int main(int argc, char* argv[]) {
             ANSI::reset();
             field->print(border);
         #endif
+        if (!Organism::organisms.size()) {
+            std::cout << "All the organisms are dead." << std::endl;
+            break;
+        }
     }
     for (Organism* organism : Organism::organisms) {
         delete organism;

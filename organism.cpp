@@ -120,6 +120,13 @@ void Organism::meet(Entity* other) {
     }
 }
 
+bool areAirConditionsGood(Organism* organism) {
+    int breath = organism->dna->genes.at(Gene::BREATH)->value;
+    if (breath == Breath::ANAEROBIC) {
+        return false; // Anaerobic organisms don't need oxygen nor carbon dioxide
+    }
+    return globals::oxygen > globals::carbon_dioxide == breath > Breath::ANAEROBIC;
+}
 void Organism::meet(Organism* other) {
     #if DEBUG
         debug << this << " is trying to meet with " << other << std::endl;
@@ -134,8 +141,12 @@ void Organism::meet(Organism* other) {
 
     if (attack_probability(random_engine)) {
         this->attack(other);
-    } else if (breeding_probability(random_engine)) {
-        this->breed(other);
+    } else {
+        if (areAirConditionsGood(this)) {
+            this->breed(other); // Full probability of breeding when the atmosphere is perfect
+        } else if (breeding_probability(random_engine)) {
+            this->breed(other);
+        }
     }
 }
 
@@ -333,10 +344,16 @@ void Organism::breathe() {
         return; // Anaerobic organisms don't need oxygen nor carbon dioxide
     }
     if (breath >= Breath::AEROBIC) {
+        if (globals::oxygen < Organism::organisms.size() * 5) {
+            health--;
+        }
         if (breath > globals::oxygen) {
             health -= (breath - globals::oxygen) * 10; // 10 damage per missing oxygen
         }
     } else if (breath <= Breath::PHOTOAUTOTROPH) {
+        if (globals::carbon_dioxide < Organism::organisms.size()) {
+            health--;
+        }
         if (breath < - globals::carbon_dioxide) {
             health += (globals::carbon_dioxide + breath) * 5; // 5 damage per missing carbon dioxide
         }
@@ -391,7 +408,7 @@ bool Organism::breedable(const Organism* other) const {
             too_different_alleles++;
         }
     }
-    if (too_different_alleles >= 3) {
+    if (too_different_alleles >= 4) {
         #if DEBUG
             debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
         #endif
@@ -400,5 +417,5 @@ bool Organism::breedable(const Organism* other) const {
             debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
         #endif
     }
-    return too_different_alleles < 3;
+    return too_different_alleles < 4;
 }
