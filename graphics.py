@@ -6,14 +6,14 @@ import os
 
 
 def allele_sort(allele: str) -> int:
-    if allele.isnumeric():
+    if allele.lstrip('-').isnumeric():
         return int(allele)
     return {
         "slow": 1, "medium": 2, "fast": 3, "weak": 1, "moderate": 2, "strong": 3,
         "low": 1, "median": 3, "high": 5, "aggressive": 1, "passive": 2, "neutral": 3,
         "short": 1, "average": 2, "long": 3, "near": 1, "clear": 3, "far": 5,
         "photoautotroph": -2, "anaerobic": 0, "aerobic": 1
-    }.get(allele, 0)
+    }[allele]
 
 
 if __name__ == '__main__':
