@@ -138,6 +138,8 @@ int main(int argc, char* argv[]) {
     sista::clearScreen();
     field->print(border);
     Organism::dead_organisms.clear();
+    globals::oxygen = Organism::organisms.size() * 2;
+    globals::carbon_dioxide = Organism::organisms.size() * 2;
 
     bool paused = false;
     bool quit = false;
@@ -175,6 +177,8 @@ int main(int argc, char* argv[]) {
                 } else if (free_spaces == 1 && organism->stats.age > 50) {
                     organism->health -= 5;
                 }
+                // The organism has to breathe
+                organism->breathe();
                 // Check of death and aging
                 if (organism->left <= 0 || organism->health <= 0) {
                     #if DEBUG
@@ -183,6 +187,7 @@ int main(int argc, char* argv[]) {
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
+                // The organism has to try moving, after it has breathed
                 organism->has_given_birth = false;
                 organism->stats.age++;
                 organism->left--;
@@ -259,6 +264,11 @@ int main(int argc, char* argv[]) {
                 if (isDead(organism)) {
                     continue;
                 }
+                // Output atmosphere stats
+                cursor.set({31, 5});
+                std::cout << "Oxygen: " << globals::oxygen << "   ";
+                std::cout << "Carbon dioxide: " << globals::carbon_dioxide << "   ";
+                // Output organisms stats
                 cursor.set({(short unsigned)o, 54});
                 #if _WIN32
                     ANSI::reset();

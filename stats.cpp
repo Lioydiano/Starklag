@@ -12,6 +12,7 @@ std::ofstream lifespan_stats("lifespan-stats.txt", std::fstream::out | std::fstr
 std::ofstream attack_stats("attack-stats.txt", std::fstream::out | std::fstream::app);
 std::ofstream defense_stats("defense-stats.txt", std::fstream::out | std::fstream::app);
 std::ofstream vision_stats("vision-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream breath_stats("breath-stats.txt", std::fstream::out | std::fstream::app);
 std::unordered_map<Gene, std::ofstream*> gene_stats = {
     {Gene::SPEED, &speed_stats},
     {Gene::STRENGTH, &strength_stats},
@@ -20,7 +21,8 @@ std::unordered_map<Gene, std::ofstream*> gene_stats = {
     {Gene::LIFESPAN, &lifespan_stats},
     {Gene::ATTACK, &attack_stats},
     {Gene::DEFENSE, &defense_stats},
-    {Gene::VISION, &vision_stats}
+    {Gene::VISION, &vision_stats},
+    {Gene::BREATH, &breath_stats}
 };
 std::ofstream speed_alleles_stats("speed-alleles-stats.txt", std::fstream::out | std::fstream::app);
 std::ofstream strength_alleles_stats("strength-alleles-stats.txt", std::fstream::out | std::fstream::app);
@@ -30,6 +32,7 @@ std::ofstream lifespan_alleles_stats("lifespan-alleles-stats.txt", std::fstream:
 std::ofstream attack_alleles_stats("attack-alleles-stats.txt", std::fstream::out | std::fstream::app);
 std::ofstream defense_alleles_stats("defense-alleles-stats.txt", std::fstream::out | std::fstream::app);
 std::ofstream vision_alleles_stats("vision-alleles-stats.txt", std::fstream::out | std::fstream::app);
+std::ofstream breath_alleles_stats("breath-alleles-stats.txt", std::fstream::out | std::fstream::app);
 std::unordered_map<Gene, std::ofstream*> alleles_stats = {
     {Gene::SPEED, &speed_alleles_stats},
     {Gene::STRENGTH, &strength_alleles_stats},
@@ -38,8 +41,10 @@ std::unordered_map<Gene, std::ofstream*> alleles_stats = {
     {Gene::LIFESPAN, &lifespan_alleles_stats},
     {Gene::ATTACK, &attack_alleles_stats},
     {Gene::DEFENSE, &defense_alleles_stats},
-    {Gene::VISION, &vision_alleles_stats}
+    {Gene::VISION, &vision_alleles_stats},
+    {Gene::BREATH, &breath_alleles_stats}
 };
+std::ofstream atmosphere_stats("atmosphere-stats.txt", std::fstream::out | std::fstream::app);
 
 
 void dumpStats(int _) {
@@ -88,4 +93,6 @@ void dumpStats(int _) {
         *alleles_stats[gene] << std::endl;
     }
     dna_stats << std::endl;
+    // Output the statistics to atmosphere-stats.txt
+    atmosphere_stats << globals::oxygen << ',' << globals::carbon_dioxide << std::endl;
 }

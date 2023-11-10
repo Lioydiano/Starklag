@@ -58,6 +58,8 @@ public:
     void attack(Organism*);
     void eat(Food*);
 
+    void breathe();
+
     bool breedable(const Organism*) const; // Check if the two organisms can breed [depends on DNA]
 }; // Doesn't inherit from sista::Pawn, which will be put in attributes
 

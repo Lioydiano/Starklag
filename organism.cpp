@@ -11,11 +11,9 @@ sista::Field* field = nullptr;
 #if DEBUG
     std::ofstream debug("debug.txt");
 #endif
-
-struct Range {
-    int start;
-    int stop;
-    int step;
+namespace globals {
+    int oxygen;
+    int carbon_dioxide;
 };
 
 
@@ -326,6 +324,27 @@ void Organism::eat(Food* food) {
     field->removePawn(food);
     Food::foods.erase(std::find(Food::foods.begin(), Food::foods.end(), food));
     delete food;
+}
+
+
+void Organism::breathe() {
+    int breath = dna->genes.at(Gene::BREATH)->value;
+    if (breath == Breath::ANAEROBIC) {
+        return; // Anaerobic organisms don't need oxygen nor carbon dioxide
+    }
+    if (breath >= Breath::AEROBIC) {
+        if (breath > globals::oxygen) {
+            health -= (breath - globals::oxygen) * 10; // 10 damage per missing oxygen
+        }
+    } else if (breath <= Breath::PHOTOAUTOTROPH) {
+        if (breath < - globals::carbon_dioxide) {
+            health += (globals::carbon_dioxide + breath) * 5; // 5 damage per missing carbon dioxide
+        }
+    }
+    globals::oxygen -= breath;
+    globals::carbon_dioxide += breath;
+    globals::oxygen = std::max(globals::oxygen, 0);
+    globals::carbon_dioxide = std::max(globals::carbon_dioxide, 0);
 }
 
 
