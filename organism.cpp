@@ -143,7 +143,11 @@ void Organism::meet(Organism* other) {
         this->attack(other);
     } else {
         if (areAirConditionsGood(this)) {
-            this->breed(other); // Full probability of breeding when the atmosphere is perfect
+            if (areAirConditionsGood(other)) {
+                this->breed(other); // Full probability of breeding when the atmosphere is perfect for both
+            } else if (breeding_probability(random_engine) || breeding_probability(random_engine)) {
+                this->breed(other); // 60% probability of breeding when the atmosphere is perfect for this organism
+            }
         } else if (breeding_probability(random_engine)) {
             this->breed(other);
         }
@@ -198,35 +202,25 @@ void Organism::breed(Organism* other) {
         sista::Coordinates new_coordinates = coordinates;
         std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-        int random = rand() % 4;
-        for (int i = -10; i < 10; i++) {
-            for (int j = -10; j < 10; j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-                if (random == 0) {
-                    i = -i;
-                } else if (random == 1) {
-                    j = -j;
-                } else if (random == 2) {
-                    i = -i;
-                    j = -j;
-                }
-                new_coordinates.y = coordinates.y + i;
-                new_coordinates.x = coordinates.x + j;
-                if (field->isOutOfBounds(new_coordinates)) {
-                    continue;
-                }
-                if (field->isFree(new_coordinates)) {
-                    #if DEBUG
-                        debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
-                    #endif
-                    goto found;
-                }
-                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::duration<double>>(end - begin).count() > 0.1) {
-                    goto not_found;
-                }
+        for (int _ = 0; _ < 25; _++) {
+            int i = rand() % 5 + 1;
+            int j = rand() % 5 + 1;
+            if (rand() % 2) {
+                i = -i;
+            }
+            if (rand() % 2) {
+                j = -j;
+            }
+            new_coordinates.y = coordinates.y + i;
+            new_coordinates.x = coordinates.x + j;
+            if (field->isOutOfBounds(new_coordinates)) {
+                continue;
+            }
+            if (field->isFree(new_coordinates)) {
+                #if DEBUG
+                    debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
+                #endif
+                goto found;
             }
         }
         goto not_found;
@@ -351,11 +345,11 @@ void Organism::breathe() {
             health -= (breath - globals::oxygen) * 10; // 10 damage per missing oxygen
         }
     } else if (breath <= Breath::PHOTOAUTOTROPH) {
-        if (globals::carbon_dioxide < Organism::organisms.size()) {
+        if (globals::carbon_dioxide < Organism::organisms.size() * 3) {
             health--;
         }
-        if (breath < - globals::carbon_dioxide) {
-            health += (globals::carbon_dioxide + breath) * 5; // 5 damage per missing carbon dioxide
+        if (std::abs(breath) > std::abs(globals::carbon_dioxide)) {
+            health -= std::abs(globals::carbon_dioxide + breath) * 8; // 8 damage per missing carbon dioxide
         }
     }
     globals::oxygen -= breath;
@@ -408,7 +402,8 @@ bool Organism::breedable(const Organism* other) const {
             too_different_alleles++;
         }
     }
-    if (too_different_alleles >= 4) {
+    const int max_too_different_alleles = 3;
+    if (too_different_alleles >= max_too_different_alleles) {
         #if DEBUG
             debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
         #endif
@@ -417,5 +412,11 @@ bool Organism::breedable(const Organism* other) const {
             debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
         #endif
     }
-    return too_different_alleles < 4;
+    if (too_different_alleles == max_too_different_alleles && random_engine() % 3 == 0) {
+        #if DEBUG
+            debug << "\t" << this << " will be anyway able to breed with " << other << " because they have only " << too_different_alleles << " too different alleles which means they are given a 33\% to be breedable, this time they have been lucky!" << std::endl;
+        #endif
+        return true;
+    }
+    return too_different_alleles < max_too_different_alleles;
 }

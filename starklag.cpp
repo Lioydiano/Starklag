@@ -115,6 +115,9 @@ int main(int argc, char* argv[]) {
             sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
             field_.addPawn(pawn_);
         }
+        // Set default atmosphere
+        globals::oxygen = Organism::organisms.size() * 20;
+        globals::carbon_dioxide = Organism::organisms.size() * 20;
 
         // Create the food
         for (int i = 0; i < 40; i++) {
@@ -138,8 +141,6 @@ int main(int argc, char* argv[]) {
     sista::clearScreen();
     field->print(border);
     Organism::dead_organisms.clear();
-    globals::oxygen = Organism::organisms.size() * 20;
-    globals::carbon_dioxide = Organism::organisms.size() * 20;
 
     bool paused = false;
     bool quit = false;
@@ -210,10 +211,10 @@ int main(int argc, char* argv[]) {
                 }
                 sista::Coordinates coordinates = organism->getCoordinates();
                 sista::Coordinates neighbor_coordinates[4];
-                neighbor_coordinates[0] = sista::Coordinates(coordinates.x, coordinates.y-1);
-                neighbor_coordinates[1] = sista::Coordinates(coordinates.x, coordinates.y+1);
-                neighbor_coordinates[2] = sista::Coordinates(coordinates.x-1, coordinates.y);
-                neighbor_coordinates[3] = sista::Coordinates(coordinates.x+1, coordinates.y);
+                neighbor_coordinates[0] = sista::Coordinates(coordinates.y-1, coordinates.x);
+                neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
+                neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
+                neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
                 for (sista::Coordinates coordinates : neighbor_coordinates) {
                     if (field->isOutOfBounds(coordinates)) {
                         continue;
@@ -341,6 +342,10 @@ void saveOrganisms() {
     organisms << std::flush;
 }
 void loadOrganisms() {
+    // Load atmosphere
+    std::ifstream atmosphere("atmosphere-stats.txt");
+    while (atmosphere >> globals::oxygen >> globals::carbon_dioxide) {}
+    atmosphere.close();
     // Load scenario from file
     std::ifstream sklg_("organisms_set.sklg");
     int organisms_number = 0;
@@ -380,7 +385,9 @@ void loadOrganisms() {
         organism->health = health;
         organism->left = left;
         organism->id = id;
+        Organism::id_counter = id;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
+        // Organism::organisms.push_back(organism); // WTF? How could it work without this line in v0.8.1.air?
         field->addPawn(pawn_);
     }
 }
