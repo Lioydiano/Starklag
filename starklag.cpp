@@ -205,10 +205,10 @@ int main(int argc, char* argv[]) {
                 }
                 sista::Coordinates coordinates = organism->getCoordinates();
                 sista::Coordinates neighbor_coordinates[4];
-                neighbor_coordinates[0] = sista::Coordinates(coordinates.x, coordinates.y-1);
-                neighbor_coordinates[1] = sista::Coordinates(coordinates.x, coordinates.y+1);
-                neighbor_coordinates[2] = sista::Coordinates(coordinates.x-1, coordinates.y);
-                neighbor_coordinates[3] = sista::Coordinates(coordinates.x+1, coordinates.y);
+                neighbor_coordinates[0] = sista::Coordinates(coordinates.y-1, coordinates.x);
+                neighbor_coordinates[1] = sista::Coordinates(coordinates.y+1, coordinates.x);
+                neighbor_coordinates[2] = sista::Coordinates(coordinates.y, coordinates.x-1);
+                neighbor_coordinates[3] = sista::Coordinates(coordinates.y, coordinates.x+1);
                 for (sista::Coordinates coordinates : neighbor_coordinates) {
                     if (field->isOutOfBounds(coordinates)) {
                         continue;
