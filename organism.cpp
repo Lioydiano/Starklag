@@ -200,8 +200,8 @@ void Organism::breed(Organism* other) {
     // Now we have to place the children in the field
     for (Organism* child : children) {
         sista::Coordinates new_coordinates = coordinates;
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
+        bool found = false;
         for (int _ = 0; _ < 25; _++) {
             int i = rand() % 5 + 1;
             int j = rand() % 5 + 1;
@@ -220,22 +220,23 @@ void Organism::breed(Organism* other) {
                 #if DEBUG
                     debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
                 #endif
-                goto found;
+                found = true;
+                break;
             }
         }
-        goto not_found;
-        found:
-        child->coordinates = new_coordinates;
-        field->addPawn((sista::Pawn*)child);
-        continue;
-        not_found:
-        #if DEBUG
-            debug << "\t" << child << " couldn't find a place to be born" << std::endl;
-        #endif
-        organisms.erase(std::find(organisms.begin(), organisms.end(), child));
-        children.erase(std::find(children.begin(), children.end(), child));
-        delete child;
-        return; // There's no space for other children
+        if (found) {
+            child->coordinates = new_coordinates;
+            field->addPawn((sista::Pawn*)child);
+            continue;
+        } else {
+            #if DEBUG
+                debug << "\t" << child << " couldn't find a place to be born" << std::endl;
+            #endif
+            organisms.erase(std::remove(organisms.begin(), organisms.end(), child), organisms.end());
+            children.erase(std::remove(children.begin(), children.end(), child), children.end());
+            // delete child;
+            return; // There's no space for other children
+        }
     }
 }
 
@@ -327,7 +328,7 @@ void Organism::eat(Food* food) {
     health += food->energy;
     health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
     field->removePawn(food);
-    Food::foods.erase(std::find(Food::foods.begin(), Food::foods.end(), food));
+    Food::foods.erase(std::remove(Food::foods.begin(), Food::foods.end(), food), Food::foods.end());
     delete food;
 }
 
@@ -339,23 +340,47 @@ void Organism::breathe() {
     }
     if (breath >= Breath::AEROBIC) {
         if (globals::oxygen < Organism::organisms.size() * 5) {
+            #if DEBUG
+                debug << "\t" << this << " is taking oxygen but the level is too low so it's taking damage" << std::endl;
+            #endif
             health--;
         }
         if (breath > globals::oxygen) {
+            #if DEBUG
+                debug << "\t" << this << " is taking " << breath << " oxygen but there are only " << globals::oxygen << " in the atmosphere" << std::endl;
+            #endif
             health -= (breath - globals::oxygen) * 10; // 10 damage per missing oxygen
+            #if DEBUG
+                debug << "\t" << this << " has taken " << (breath - globals::oxygen) * 10 << " damage" << std::endl;
+            #endif
         }
     } else if (breath <= Breath::PHOTOAUTOTROPH) {
-        if (globals::carbon_dioxide < Organism::organisms.size() * 3) {
+        if (globals::carbon_dioxide < Organism::organisms.size() * 5) {
+            #if DEBUG
+                debug << "\t" << this << " is taking carbon dioxide but the level is too low so it's taking damage" << std::endl;
+            #endif
             health--;
         }
         if (std::abs(breath) > std::abs(globals::carbon_dioxide)) {
+            #if DEBUG
+                debug << "\t" << this << " is taking " << std::abs(breath) << " carbon dioxide but there are only " << globals::carbon_dioxide << " in the atmosphere" << std::endl;
+            #endif
             health -= std::abs(globals::carbon_dioxide + breath) * 8; // 8 damage per missing carbon dioxide
+            #if DEBUG
+                debug << "\t" << this << " has taken " << std::abs(globals::carbon_dioxide + breath) * 8 << " damage" << std::endl;
+            #endif
         }
     }
     globals::oxygen -= breath;
     globals::carbon_dioxide += breath;
     globals::oxygen = std::max(globals::oxygen, 0);
     globals::carbon_dioxide = std::max(globals::carbon_dioxide, 0);
+    if (health <= 0) {
+        #if DEBUG
+            debug << "\t" << this << " died because it couldn't breathe" << std::endl;
+        #endif
+        dead_organisms.push_back(this);
+    }
 }
 
 

@@ -93,8 +93,8 @@ int main(int argc, char* argv[]) {
                 (short unsigned)(random_engine() % 30),
                 (short unsigned)(random_engine() % 50)
             );
-            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
-            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
+            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)((random_engine() + rand()) % 8 + 30);
+            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)((random_engine() + rand()) % 8 + 40);
             if ((int)foreground_color == (int)background_color - 10) {
                 foreground_color = ANSI::ForegroundColor::F_WHITE;
                 background_color = ANSI::BackgroundColor::B_BLACK;
@@ -116,8 +116,8 @@ int main(int argc, char* argv[]) {
             field_.addPawn(pawn_);
         }
         // Set default atmosphere
-        globals::oxygen = Organism::organisms.size() * 20;
-        globals::carbon_dioxide = Organism::organisms.size() * 20;
+        globals::oxygen = Organism::organisms.size() * 100;
+        globals::carbon_dioxide = Organism::organisms.size() * 100;
 
         // Create the food
         for (int i = 0; i < 40; i++) {
@@ -243,6 +243,7 @@ int main(int argc, char* argv[]) {
             // Clean the dead organisms
             for (Organism* organism : Organism::dead_organisms) {
                 Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+                field->removePawn(organism->getCoordinates());
             }
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -344,7 +345,8 @@ void saveOrganisms() {
 void loadOrganisms() {
     // Load atmosphere
     std::ifstream atmosphere("atmosphere-stats.txt");
-    while (atmosphere >> globals::oxygen >> globals::carbon_dioxide) {}
+    char comma;
+    while (atmosphere >> globals::oxygen >> comma >> globals::carbon_dioxide) {}
     atmosphere.close();
     // Load scenario from file
     std::ifstream sklg_("organisms_set.sklg");
@@ -387,7 +389,6 @@ void loadOrganisms() {
         organism->id = id;
         Organism::id_counter = id;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        // Organism::organisms.push_back(organism); // WTF? How could it work without this line in v0.8.1.air?
         field->addPawn(pawn_);
     }
 }
