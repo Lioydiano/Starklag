@@ -237,6 +237,7 @@ int main(int argc, char* argv[]) {
             // Clean the dead organisms
             for (Organism* organism : Organism::dead_organisms) {
                 Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+                field->removePawn(organism->getCoordinates());
             }
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
