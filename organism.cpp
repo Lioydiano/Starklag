@@ -63,9 +63,10 @@ void Organism::move() {
     std::bernoulli_distribution moving_probability(0.2*dna->genes.at(Gene::SPEED)->value);
     if (moving_probability(random_engine)) {
         sista::Coordinates new_coordinates = coordinates;
-        do {
+        bool found = false;
+        for (int _ = 0; _ < 4; _++) {
             new_coordinates = coordinates;
-            switch (random_engine() % 4) {
+            switch (_) {
                 case 0: {
                     new_coordinates.x++;
                     break;
@@ -83,7 +84,15 @@ void Organism::move() {
                     break;
                 }
             }
-        } while (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates);
+            if (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates) {
+                continue;
+            }
+            found = true;
+            break;
+        }
+        if (!found) {
+            return;
+        }
         if (field->isOccupied(new_coordinates)) {
             Entity* other = nullptr;
             for (Food* food : Food::foods) {
