@@ -47,8 +47,8 @@
 
 
 void loadOrganisms();
-void printOrganism();
-void editOrganism() {}
+void printOrganism(bool wait=true);
+void editOrganism();
 void removeOrganism() {}
 void newOrganism() {}
 void saveOrganisms();
@@ -91,7 +91,8 @@ int main() {
         cursor_.set(cursor_coordinates[1]);
         std::cout << "^";
         cursor_.set(coordinates_);
-        std::cout << "X" << std::flush;
+        std::cout << SHOW_CURSOR;
+        // std::cout << "X" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
             char c = getch();
         #elif __APPLE__
@@ -99,13 +100,23 @@ int main() {
         #endif
         if (actionFromChar(c)) {
             cursor_.set(35, 10);
-            std::cout << "Save? (y/n)" << std::flush;
+            std::cout << "Exit? (y/n)" << std::flush;
             #if defined(_WIN32) or defined(__linux__)
                 char c = getch();
             #elif __APPLE__
                 char c = getchar();
             #endif
-            if (c == 'y') {
+            if (c != 'y' && c != 'Y') {
+                continue;
+            }
+            cursor_.set(35, 10);
+            std::cout << "Save? (y/n)" << std::flush;
+            #if defined(_WIN32) or defined(__linux__)
+                c = getch();
+            #elif __APPLE__
+                c = getchar();
+            #endif
+            if (c == 'y' || c == 'Y') {
                 saveOrganisms();
             }
             break;
@@ -159,7 +170,70 @@ bool actionFromChar(char c) {
 }
 
 
-void printOrganism() {
+void editOrganism() {
+    Organism* organism = nullptr;
+    for (Organism* organism_ : Organism::organisms) {
+        if (organism_->getCoordinates() == *coordinates) {
+            organism = organism_;
+            break;
+        }
+    }
+    if (organism == nullptr) {
+        cursor->set(35, 10);
+        std::cout << "No organism on this coordinates" << std::flush;
+        #if defined(_WIN32) or defined(__linux__)
+            getch();
+        #elif __APPLE__
+            getchar();
+        #endif
+        return;
+    } else {
+        char action = 'q';
+        do {
+            printOrganism(false);
+            #if defined(_WIN32) or defined(__linux__)
+                action = getch();
+            #elif __APPLE__
+                action = getchar();
+            #endif
+            cursor->set(35, 80);
+            switch (action) {
+                case 'h': case 'H': { // Health
+                    std::cout << "Health:        ";
+                    cursor->set(35, 88);
+                    std::cin >> organism->health;
+                    break;
+                }
+                case 's': case 'S': { // Symbol
+                    std::cout << "Symbol:        ";
+                    cursor->set(35, 88);
+                    #if defined(_WIN32) or defined(__linux__)
+                        organism->setSymbol(getch());
+                    #elif __APPLE__
+                        organism->setSymbol(getchar());
+                    #endif
+                    break;
+                }
+                case 'l': case 'L': { // Left
+                    std::cout << "Left:          ";
+                    cursor->set(35, 86);
+                    std::cin >> organism->left;
+                    break;
+                }
+                case 'd': case 'D': { // DNA
+                    // We gotta implement some shit in here
+                    break;
+                }
+                case 'q': case 'Q': {
+                    break;
+                }
+            }
+        } while (action != 'q' && action != 'Q');
+    }
+}
+
+
+void printOrganism(bool wait/*=true*/) {
     // We need to find organism on this coordinates
     Organism* organism = nullptr;
     for (Organism* organism_ : Organism::organisms) {
@@ -180,17 +254,17 @@ void printOrganism() {
     } else {
         ANSI::reset();
         cursor->set(5, 55);
-        std::cout << "Organism: " << organism->id;
+        std::cout << "Organism: " << organism->id << "   ";
         cursor->set(6, 55);
         std::cout << "Symbol: ";
         organism->print();
         ANSI::reset();
         cursor->set(7, 55);
-        std::cout << "Health: " << organism->health;
+        std::cout << "Health: " << organism->health << "   ";
         cursor->set(8, 55);
-        std::cout << "Age: " << organism->stats.age;
+        std::cout << "Age: " << organism->stats.age << "   ";
         cursor->set(9, 55);
-        std::cout << "Left: " << organism->left;
+        std::cout << "Left: " << organism->left << "   ";
         cursor->set(11, 55);
         for (Gene gene : genes) {
             std::cout << "\t";
@@ -202,11 +276,13 @@ void printOrganism() {
             cursor->set(11 + (int)gene, 55);
         }
         std::cout << std::flush;
-        #if defined(_WIN32) or defined(__linux__)
-            getch();
-        #elif __APPLE__
-            getchar();
-        #endif
+        if (wait) {
+            #if defined(_WIN32) or defined(__linux__)
+                getch();
+            #elif __APPLE__
+                getchar();
+            #endif
+        }
     }
 }
 
