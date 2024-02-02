@@ -79,6 +79,7 @@ int main() {
     field = &field_;
     loadOrganisms();
     while (true) {
+        cursor_.set(0, 0);
         field->print(border_);
         coordinates_.y %= 30;
         coordinates_.x %= 50;
@@ -107,6 +108,7 @@ int main() {
                 char c = getchar();
             #endif
             if (c != 'y' && c != 'Y') {
+                sista::clearScreen();
                 continue;
             }
             cursor_.set(35, 10);
@@ -170,6 +172,48 @@ bool actionFromChar(char c) {
 }
 
 
+void printDNA(DNA* dna, unsigned int x) {
+    for (Gene gene : genes) {
+        cursor->set(11 + (int)gene, x);
+        std::cout << "\t";
+        std::cout << gene_to_string[gene] << ": ";
+        if (allele_to_string[gene].find(dna->genes[gene]->value) == allele_to_string[gene].end())
+            std::cout << dna->genes[gene]->value;
+        else
+            std::cout << allele_to_string[gene][dna->genes[gene]->value];
+    }
+}
+
+
+void geneticEditor(DNA* dna) {
+    sista::clearScreen();
+    printDNA(dna, 10);
+    while (true) {
+        cursor->set(35, 10);
+        std::cout << "Edit gene (-1 to exit): ";
+        int gene;
+        std::cin >> gene;
+        if (gene < 0) {
+            break;
+        }
+        if (gene > 8) { // Gene::BREATH
+            continue;
+        }
+        Gene gene_ = (Gene)gene;
+        cursor->set(35, 10);
+        std::cout << "Edit gene " << gene_to_string[gene_] << " (-1 to exit): ";
+        int value;
+        std::cin >> value;
+        if (value < 0) {
+            break;
+        }
+        dna->genes[gene_]->value = value;
+        sista::clearScreen();
+        printDNA(dna, 10);
+    }
+}
+
+
 void editOrganism() {
     Organism* organism = nullptr;
     for (Organism* organism_ : Organism::organisms) {
@@ -221,8 +265,8 @@ void editOrganism() {
                     break;
                 }
                 case 'd': case 'D': { // DNA
-                    // We gotta implement some shit in here
-                    break;
+                    geneticEditor(organism->dna);
+                    return;
                 }
                 case 'q': case 'Q': {
                     break;
@@ -266,15 +310,7 @@ void printOrganism(bool wait/*=true*/) {
         cursor->set(9, 55);
         std::cout << "Left: " << organism->left << "   ";
         cursor->set(11, 55);
-        for (Gene gene : genes) {
-            std::cout << "\t";
-            std::cout << gene_to_string[gene] << ": ";
-            if (allele_to_string[gene].find(organism->dna->genes[gene]->value) == allele_to_string[gene].end())
-                std::cout << organism->dna->genes[gene]->value;
-            else
-                std::cout << allele_to_string[gene][organism->dna->genes[gene]->value];
-            cursor->set(11 + (int)gene, 55);
-        }
+        printDNA(organism->dna, 55);
         std::cout << std::flush;
         if (wait) {
             #if defined(_WIN32) or defined(__linux__)
