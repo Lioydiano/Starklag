@@ -49,8 +49,8 @@
 void loadOrganisms();
 void printOrganism(bool wait=true);
 void editOrganism();
-void removeOrganism() {}
-void newOrganism() {}
+void removeOrganism();
+void newOrganism(sista::Coordinates*);
 void saveOrganisms();
 bool actionFromChar(char);
 sista::Coordinates* coordinates;
@@ -62,6 +62,26 @@ int main() {
     #ifdef __APPLE__
         term_echooff();
     #endif
+    // Introduction
+    sista::clearScreen();
+    std::cout << "Welcome to the Organism Editor!" << std::endl;
+    std::cout << "Here you can edit, create, remove and print organisms\n" << std::endl;
+    std::cout << "Use the following keys to navigate:" << std::endl;
+    std::cout << "  - w/a/s/d to move the cursor" << std::endl;
+    std::cout << "  - p to print organism" << std::endl;
+    std::cout << "  - e to edit organism" << std::endl;
+    std::cout << "  - r to remove organism" << std::endl;
+    std::cout << "  - n to create new organism" << std::endl;
+    std::cout << "  - c to print coordinates" << std::endl;
+    std::cout << "  - q to exit" << std::endl;
+    std::cout << "Also some zoom-out is advised for a better editing experience\n" << std::endl;
+    std::cout << "Press any key to continue..." << std::flush;
+    #if defined(_WIN32) or defined(__linux__)
+        getch();
+    #elif __APPLE__
+        getchar();
+    #endif
+
     sista::Coordinates coordinates_(0, 0);
     sista::Cursor cursor_;
     sista::Border border_(
@@ -156,7 +176,7 @@ bool actionFromChar(char c) {
             removeOrganism();
             break;
         case 'n': // New Organism
-            newOrganism();
+            newOrganism(coordinates);
             break;
         case 'c': // Print coordinates
             cursor->set(35, 55);
@@ -200,16 +220,122 @@ void geneticEditor(DNA* dna) {
             continue;
         }
         Gene gene_ = (Gene)gene;
+        Allele allele(gene_, dna->genes[gene_]->value);
+        for (int i = 0; i < possible_random_allele_values[gene_].size(); i++) {
+            allele = Allele(gene_, possible_random_allele_values[gene_][i]);
+            cursor->set(11 + gene + i, 50);
+            std::cout << allele.value << ": " << allele_to_string[gene_][allele.value] << std::endl;
+        }
         cursor->set(35, 10);
-        std::cout << "Edit gene " << gene_to_string[gene_] << " (-1 to exit): ";
+        std::cout << "Edit gene \x1b[1m" << gene_to_string[gene_] << "\x1b[0m (42 to exit): ";
         int value;
         std::cin >> value;
-        if (value < 0) {
+        if (value == 42) {
             break;
         }
         dna->genes[gene_]->value = value;
         sista::clearScreen();
         printDNA(dna, 10);
+    }
+}
+
+
+void newOrganism(sista::Coordinates* coordinates) {
+    Organism* organism = nullptr;
+    for (Organism* organism_ : Organism::organisms) {
+        if (organism_->getCoordinates() == *coordinates) {
+            organism = organism_;
+            break;
+        }
+    }
+    if (organism != nullptr) {
+        cursor->set(35, 10);
+        std::cout << "Organism already exists on this coordinates" << std::endl;
+        std::cout << "Try 'e' for editing it or 'r' for removing it" << std::flush;
+        #if defined(_WIN32) or defined(__linux__)
+            getch();
+        #elif __APPLE__
+            getchar();
+        #endif
+        return;
+    } else {
+        cursor->set(35, 10);
+        std::cout << "Enter symbol: " << std::flush;
+        char symbol;
+        #if defined(_WIN32) or defined(__linux__)
+            symbol = getch();
+        #elif __APPLE__
+            symbol = getchar();
+        #endif
+        cursor->set(35, 10);
+        std::cout << "Enter health:            " << std::flush;
+        int health;
+        std::cin >> health;
+        cursor->set(35, 10);
+        std::cout << "Enter left:              " << std::flush;
+        int left;
+        std::cin >> left;
+        DNA* dna = new DNA;
+        for (Gene gene : genes) {
+            sista::clearScreen();
+            Allele allele(gene, 0);
+            for (int i = 0; i < possible_random_allele_values[gene].size(); i++) {
+                allele = Allele(gene, possible_random_allele_values[gene][i]);
+                cursor->set(16 + gene + i, 20);
+                std::cout << allele.value << ": " << allele_to_string[gene][allele.value] << std::endl;
+            }
+            cursor->set(35, 10);
+            std::cout << "Enter gene \x1b[1m" << gene_to_string[gene] << "\x1b[0m: " << std::flush;
+            int value;
+            std::cin >> value;
+            dna->genes[gene]->value = value;
+        }
+        Statistics void_stats{0, 0, {nullptr, nullptr}, {}};
+        organism = new Organism(
+            symbol, *coordinates, ANSI::Settings(
+                ANSI::ForegroundColor::F_WHITE,
+                ANSI::BackgroundColor::B_BLACK,
+                ANSI::Attribute::BRIGHT
+            ), dna, void_stats
+        );
+        organism->health = health;
+        organism->left = left;
+        sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
+        field->addPawn(pawn_);
+    }
+}
+
+
+void removeOrganism() {
+    Organism* organism = nullptr;
+    for (Organism* organism_ : Organism::organisms) {
+        if (organism_->getCoordinates() == *coordinates) {
+            organism = organism_;
+            break;
+        }
+    }
+    if (organism == nullptr) {
+        cursor->set(35, 10);
+        std::cout << "No organism on this coordinates" << std::flush;
+        #if defined(_WIN32) or defined(__linux__)
+            getch();
+        #elif __APPLE__
+            getchar();
+        #endif
+        return;
+    } else {
+        cursor->set(35, 10);
+        std::cout << "Are you sure you want to remove this organism? (y/n)" << std::flush;
+        #if defined(_WIN32) or defined(__linux__)
+            char c = getch();
+        #elif __APPLE__
+            char c = getchar();
+        #endif
+        if (c == 'y' || c == 'Y') {
+            field->removePawn((sista::Pawn*)organism);
+            Organism::organisms.erase(std::remove(Organism::organisms.begin(), Organism::organisms.end(), organism), Organism::organisms.end());
+            delete organism;
+        }
     }
 }
 
