@@ -34,6 +34,8 @@ You only need to compile the `starklag.cpp` file using `g++` with the `-std=c++1
 g++ -std=c++17 starklag.cpp -o starklag
 ```
 
+You normally can find the Linux executable `starklag` and the Windows executable `starklag.exe` in the main directory.
+
 ## Usage
 
 ### Folder structure
@@ -81,8 +83,10 @@ Anyway, you should better do the two steps separately, since starklag's simulati
 ```bash
 ../../starklag
 cd ../..
-python3 graphics.py <insert-{i} here>
+python3 graphics.py <insert-{i}-here>
 ```
+
+For example `python3 graphics.py 1` will produce the graphics for the simulation in `demo/1`.
 
 ### Input
 
@@ -176,12 +180,12 @@ You should do the same as for running a new simulation, but...
 ```bash
 ../../starklag --load
 cd ../..
-python3 graphics.py <insert-{i} here>
+python3 graphics.py <insert-{i}-here>
 ```
 
 ...in this case you add `--load`.
 
-Be sure to have put in `demo/{i}` the `organisms_set.sklg` from which data will be loaded.
+Be sure to have put in `demo/{i}/` the `organisms_set.sklg` from which data will be loaded.
 
 ```txt
 0 A 34 42 22 16 23 377 10 1 1 0 4 2 1 1 2 
@@ -213,3 +217,59 @@ Be sure to have put in `demo/{i}` the `organisms_set.sklg` from which data will 
 ```
 
 Be sure to duplicate the directory if you want to run more simulations from the same save.
+
+### Edit a simulation
+
+You can edit the `organisms_set.sklg` file to change the organisms' DNA, HP, position, etc.
+
+```txt
+0 A 34 42 22 16 23 377 10 1 1 0 4 2 1 1 2
+```
+
+Each line is an organism represented by...
+
+- organism's `id`
+- the `symbol`
+- foreground color
+- background color
+- `y` coordinate
+- `x` coordinate
+- the `age`
+- `left`: the time to live left
+- the `health`
+- the alleles of the `DNA`
+
+You can change the values to see how the simulation evolves.
+
+To do so, you should stop the simulation, edit the file and then load the simulation again as described above.
+
+You can also add new organisms, but you should be careful with the `id`.
+
+### Simulation editor
+
+In order to edit a simulation, you may find more practical to use the `editor`.
+    
+```bash
+../../editor
+```
+
+This will open the `editor` which is a program that allows you to edit the `organisms_set.sklg` file.
+
+You can add, remove and edit organisms easily with a graphical/textual interface.
+
+```txt
+Welcome to the Organism Editor!
+Here you can edit, create, remove and print organisms
+
+Use the following keys to navigate:
+  - w/a/s/d to move the cursor
+  - p to print organism
+  - e to edit organism
+  - r to remove organism
+  - n to create new organism
+  - c to print coordinates
+  - q to exit
+Also some zoom-out is advised for a better editing experience
+```
+
+Simply follow the instructions on the screen to edit the simulation.
