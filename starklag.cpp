@@ -93,8 +93,8 @@ int main(int argc, char* argv[]) {
                 (short unsigned)(random_engine() % 30),
                 (short unsigned)(random_engine() % 50)
             );
-            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)(random_engine() % 8 + 30);
-            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)(random_engine() % 8 + 40);
+            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)((random_engine() + rand()) % 8 + 30);
+            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)((random_engine() + rand()) % 8 + 40);
             if ((int)foreground_color == (int)background_color - 10) {
                 foreground_color = ANSI::ForegroundColor::F_WHITE;
                 background_color = ANSI::BackgroundColor::B_BLACK;
@@ -115,6 +115,9 @@ int main(int argc, char* argv[]) {
             sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
             field_.addPawn(pawn_);
         }
+        // Set default atmosphere
+        globals::oxygen = Organism::organisms.size() * 100;
+        globals::carbon_dioxide = Organism::organisms.size() * 100;
 
         // Create the food
         for (int i = 0; i < 40; i++) {
@@ -183,11 +186,14 @@ int main(int argc, char* argv[]) {
                     Organism::dead_organisms.push_back(organism);
                     continue;
                 }
+                // The organism has to try moving, after it has breathed
                 organism->has_given_birth = false;
                 organism->stats.age++;
                 organism->left--;
                 if (organism->health < organism->dna->genes.at(Gene::STRENGTH)->value*5)
                     organism->left--; // If the organism is weak, it will die faster
+                // The organism has to breathe
+                organism->breathe();
                 organism->move();
             }
             // All the organisms may meet
@@ -260,6 +266,11 @@ int main(int argc, char* argv[]) {
                 if (isDead(organism)) {
                     continue;
                 }
+                // Output atmosphere stats
+                cursor.set({31, 5});
+                std::cout << "Oxygen: " << globals::oxygen << "   ";
+                std::cout << "Carbon dioxide: " << globals::carbon_dioxide << "   ";
+                // Output organisms stats
                 cursor.set({(short unsigned)o, 54});
                 #if _WIN32
                     ANSI::reset();
@@ -288,6 +299,10 @@ int main(int argc, char* argv[]) {
             ANSI::reset();
             field->print(border);
         #endif
+        if (!Organism::organisms.size()) {
+            std::cout << "All the organisms are dead." << std::endl;
+            break;
+        }
     }
     for (Organism* organism : Organism::organisms) {
         delete organism;
@@ -328,6 +343,11 @@ void saveOrganisms() {
     organisms << std::flush;
 }
 void loadOrganisms() {
+    // Load atmosphere
+    std::ifstream atmosphere("atmosphere-stats.txt");
+    char comma;
+    while (atmosphere >> globals::oxygen >> comma >> globals::carbon_dioxide) {}
+    atmosphere.close();
     // Load scenario from file
     std::ifstream sklg_("organisms_set.sklg");
     int organisms_number = 0;
@@ -367,6 +387,7 @@ void loadOrganisms() {
         organism->health = health;
         organism->left = left;
         organism->id = id;
+        Organism::id_counter = id;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
         field->addPawn(pawn_);
     }

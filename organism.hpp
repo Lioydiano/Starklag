@@ -34,9 +34,8 @@ public:
 
 
 class Organism: public Entity {
-    static inline unsigned id_counter = 0;
-
 public:
+    static inline unsigned id_counter = 0;
     static inline std::vector<Organism*> organisms;
     static inline std::vector<Organism*> dead_organisms;
 
@@ -57,6 +56,8 @@ public:
     void breed(Organism*); // Places the children in the sista::Field
     void attack(Organism*);
     void eat(Food*);
+
+    void breathe();
 
     bool breedable(const Organism*) const; // Check if the two organisms can breed [depends on DNA]
 }; // Doesn't inherit from sista::Pawn, which will be put in attributes

@@ -11,11 +11,9 @@ sista::Field* field = nullptr;
 #if DEBUG
     std::ofstream debug("debug.txt");
 #endif
-
-struct Range {
-    int start;
-    int stop;
-    int step;
+namespace globals {
+    int oxygen;
+    int carbon_dioxide;
 };
 
 
@@ -65,9 +63,10 @@ void Organism::move() {
     std::bernoulli_distribution moving_probability(0.2*dna->genes.at(Gene::SPEED)->value);
     if (moving_probability(random_engine)) {
         sista::Coordinates new_coordinates = coordinates;
-        do {
+        bool found = false;
+        for (int _ = 0; _ < 4; _++) {
             new_coordinates = coordinates;
-            switch (random_engine() % 4) {
+            switch (_) {
                 case 0: {
                     new_coordinates.x++;
                     break;
@@ -85,7 +84,15 @@ void Organism::move() {
                     break;
                 }
             }
-        } while (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates);
+            if (field->isOutOfBounds(new_coordinates) || new_coordinates == coordinates) {
+                continue;
+            }
+            found = true;
+            break;
+        }
+        if (!found) {
+            return;
+        }
         if (field->isOccupied(new_coordinates)) {
             Entity* other = nullptr;
             for (Food* food : Food::foods) {
@@ -122,6 +129,13 @@ void Organism::meet(Entity* other) {
     }
 }
 
+bool areAirConditionsGood(Organism* organism) {
+    int breath = organism->dna->genes.at(Gene::BREATH)->value;
+    if (breath == Breath::ANAEROBIC) {
+        return false; // Anaerobic organisms don't need oxygen nor carbon dioxide
+    }
+    return globals::oxygen > globals::carbon_dioxide == breath > Breath::ANAEROBIC;
+}
 void Organism::meet(Organism* other) {
     #if DEBUG
         debug << this << " is trying to meet with " << other << std::endl;
@@ -136,8 +150,16 @@ void Organism::meet(Organism* other) {
 
     if (attack_probability(random_engine)) {
         this->attack(other);
-    } else if (breeding_probability(random_engine)) {
-        this->breed(other);
+    } else {
+        if (areAirConditionsGood(this)) {
+            if (areAirConditionsGood(other)) {
+                this->breed(other); // Full probability of breeding when the atmosphere is perfect for both
+            } else if (breeding_probability(random_engine) || breeding_probability(random_engine)) {
+                this->breed(other); // 60% probability of breeding when the atmosphere is perfect for this organism
+            }
+        } else if (breeding_probability(random_engine)) {
+            this->breed(other);
+        }
     }
 }
 
@@ -187,52 +209,43 @@ void Organism::breed(Organism* other) {
     // Now we have to place the children in the field
     for (Organism* child : children) {
         sista::Coordinates new_coordinates = coordinates;
-        std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
-        int random = rand() % 4;
-        for (int i = -10; i < 10; i++) {
-            for (int j = -10; j < 10; j++) {
-                if (i == 0 && j == 0) {
-                    continue;
-                }
-                if (random == 0) {
-                    i = -i;
-                } else if (random == 1) {
-                    j = -j;
-                } else if (random == 2) {
-                    i = -i;
-                    j = -j;
-                }
-                new_coordinates.y = coordinates.y + i;
-                new_coordinates.x = coordinates.x + j;
-                if (field->isOutOfBounds(new_coordinates)) {
-                    continue;
-                }
-                if (field->isFree(new_coordinates)) {
-                    #if DEBUG
-                        debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
-                    #endif
-                    goto found;
-                }
-                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-                if (std::chrono::duration_cast<std::chrono::duration<double>>(end - begin).count() > 0.1) {
-                    goto not_found;
-                }
+        bool found = false;
+        for (int _ = 0; _ < 25; _++) {
+            int i = rand() % 5 + 1;
+            int j = rand() % 5 + 1;
+            if (rand() % 2) {
+                i = -i;
+            }
+            if (rand() % 2) {
+                j = -j;
+            }
+            new_coordinates.y = coordinates.y + i;
+            new_coordinates.x = coordinates.x + j;
+            if (field->isOutOfBounds(new_coordinates)) {
+                continue;
+            }
+            if (field->isFree(new_coordinates)) {
+                #if DEBUG
+                    debug << "\t" << child << " is placed at delta {" << i << ", " << j << "}" << std::endl;
+                #endif
+                found = true;
+                break;
             }
         }
-        goto not_found;
-        found:
-        child->coordinates = new_coordinates;
-        field->addPawn((sista::Pawn*)child);
-        continue;
-        not_found:
-        #if DEBUG
-            debug << "\t" << child << " couldn't find a place to be born" << std::endl;
-        #endif
-        organisms.erase(std::find(organisms.begin(), organisms.end(), child));
-        children.erase(std::find(children.begin(), children.end(), child));
-        delete child;
-        return; // There's no space for other children
+        if (found) {
+            child->coordinates = new_coordinates;
+            field->addPawn((sista::Pawn*)child);
+            continue;
+        } else {
+            #if DEBUG
+                debug << "\t" << child << " couldn't find a place to be born" << std::endl;
+            #endif
+            organisms.erase(std::remove(organisms.begin(), organisms.end(), child), organisms.end());
+            children.erase(std::remove(children.begin(), children.end(), child), children.end());
+            // delete child;
+            return; // There's no space for other children
+        }
     }
 }
 
@@ -324,8 +337,59 @@ void Organism::eat(Food* food) {
     health += food->energy;
     health = std::min(dna->genes.at(Gene::STRENGTH)->value*10, health);
     field->removePawn(food);
-    Food::foods.erase(std::find(Food::foods.begin(), Food::foods.end(), food));
+    Food::foods.erase(std::remove(Food::foods.begin(), Food::foods.end(), food), Food::foods.end());
     delete food;
+}
+
+
+void Organism::breathe() {
+    int breath = dna->genes.at(Gene::BREATH)->value;
+    if (breath == Breath::ANAEROBIC) {
+        return; // Anaerobic organisms don't need oxygen nor carbon dioxide
+    }
+    if (breath >= Breath::AEROBIC) {
+        if (globals::oxygen < Organism::organisms.size() * 5) {
+            #if DEBUG
+                debug << "\t" << this << " is taking oxygen but the level is too low so it's taking damage" << std::endl;
+            #endif
+            health--;
+        }
+        if (breath > globals::oxygen) {
+            #if DEBUG
+                debug << "\t" << this << " is taking " << breath << " oxygen but there are only " << globals::oxygen << " in the atmosphere" << std::endl;
+            #endif
+            health -= (breath - globals::oxygen) * 10; // 10 damage per missing oxygen
+            #if DEBUG
+                debug << "\t" << this << " has taken " << (breath - globals::oxygen) * 10 << " damage" << std::endl;
+            #endif
+        }
+    } else if (breath <= Breath::PHOTOAUTOTROPH) {
+        if (globals::carbon_dioxide < Organism::organisms.size() * 5) {
+            #if DEBUG
+                debug << "\t" << this << " is taking carbon dioxide but the level is too low so it's taking damage" << std::endl;
+            #endif
+            health--;
+        }
+        if (std::abs(breath) > std::abs(globals::carbon_dioxide)) {
+            #if DEBUG
+                debug << "\t" << this << " is taking " << std::abs(breath) << " carbon dioxide but there are only " << globals::carbon_dioxide << " in the atmosphere" << std::endl;
+            #endif
+            health -= std::abs(globals::carbon_dioxide + breath) * 8; // 8 damage per missing carbon dioxide
+            #if DEBUG
+                debug << "\t" << this << " has taken " << std::abs(globals::carbon_dioxide + breath) * 8 << " damage" << std::endl;
+            #endif
+        }
+    }
+    globals::oxygen -= breath;
+    globals::carbon_dioxide += breath;
+    globals::oxygen = std::max(globals::oxygen, 0);
+    globals::carbon_dioxide = std::max(globals::carbon_dioxide, 0);
+    if (health <= 0) {
+        #if DEBUG
+            debug << "\t" << this << " died because it couldn't breathe" << std::endl;
+        #endif
+        dead_organisms.push_back(this);
+    }
 }
 
 
@@ -372,7 +436,8 @@ bool Organism::breedable(const Organism* other) const {
             too_different_alleles++;
         }
     }
-    if (too_different_alleles >= 3) {
+    const int max_too_different_alleles = 3;
+    if (too_different_alleles >= max_too_different_alleles) {
         #if DEBUG
             debug << "\t" << this << " can't breed with " << other << " because they have " << too_different_alleles << " too different alleles" << std::endl;
         #endif
@@ -381,5 +446,11 @@ bool Organism::breedable(const Organism* other) const {
             debug << "\t" << this << " can breed with " << other << " because they have only " << too_different_alleles << " too different alleles" << std::endl;
         #endif
     }
-    return too_different_alleles < 3;
+    if (too_different_alleles == max_too_different_alleles && random_engine() % 3 == 0) {
+        #if DEBUG
+            debug << "\t" << this << " will be anyway able to breed with " << other << " because they have only " << too_different_alleles << " too different alleles which means they are given a 33\% to be breedable, this time they have been lucky!" << std::endl;
+        #endif
+        return true;
+    }
+    return too_different_alleles < max_too_different_alleles;
 }

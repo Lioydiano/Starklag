@@ -7,7 +7,7 @@
 enum Gene {
     SPEED, STRENGTH, FERTILITY,
     NATURE, LIFESPAN, ATTACK,
-    DEFENSE, VISION
+    DEFENSE, VISION, BREATH
 };
 
 
@@ -68,6 +68,7 @@ enum Strength {WEAK=1, MODERATE=2, STRONG=3};
 enum Fertility {LOW=1, MEDIAN=3, HIGH=5};
 enum LifeSpan {SHORT_=1, AVERAGE=2, LONG_=3}; // If more than LONG, then it's potentially immortal
 enum Vision {NEAR=1, CLEAR=3, FAR=5};
+enum Breath {PHOTOAUTOTROPH=-2, ANAEROBIC=0, AEROBIC=1};
 
 extern std::unordered_map<Gene, int> default_allele_value;
 extern std::unordered_map<Gene, std::vector<int>> possible_random_allele_values;
