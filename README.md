@@ -4,7 +4,11 @@ Starklag, which is a contraction of *"den starkastes lag"* which in Swedish mean
 
 The simulator is written in `C++17` and uses the [`Sista`](https://github.com/FLAK-ZOSO/Sista) library for the real time field view.
 
+![image](https://github.com/user-attachments/assets/21c07f0f-0fd1-447d-a046-18a23c1c38b6)
+
 The statistics are dumped in `.txt` files, they can be plotted using the `Python` script in the `demo` folder, which uses `matplotlib`.
+
+![fertility-alleles-stats](https://github.com/user-attachments/assets/2ebdf5cb-3557-453f-87b9-ffeb9b3b18f4)
 
 ## Supported platforms
 
@@ -100,6 +104,8 @@ The output is a real time view of the field, with the organisms represented by A
 It is suggested to keep a zoom that allows you to see the whole field in height, but not in width, so that you can see the side logs.
 
 ## Example
+
+![image](https://github.com/user-attachments/assets/aa2114ff-d43e-494c-9b6d-740180eb4119)
 
 The following is an example of a simulation after 9 frames.
 
