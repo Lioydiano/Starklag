@@ -2,13 +2,15 @@
 
 Starklag, which is a contraction of *"den starkastes lag"* which in Swedish means *"the law of the strongest"*, is a partial evolution simulator with real time view on the field, logging, statistics and graphical representation of the population and of the expressions of the genes.
 
-![image](https://github.com/user-attachments/assets/21c07f0f-0fd1-447d-a046-18a23c1c38b6)
+[Screencast from 2025-02-13 11-57-06.webm](https://github.com/user-attachments/assets/f3e4ea32-86d9-4e78-a15d-52cb2988d05d)
 
 The simulator is written in `C++17` and uses the [`Sista`](https://github.com/FLAK-ZOSO/Sista) library for the real time field view.
 
-![image](https://github.com/user-attachments/assets/006b26a0-e3bd-4961-a529-1f854807ffb4)
+![image](https://github.com/user-attachments/assets/21c07f0f-0fd1-447d-a046-18a23c1c38b6)
 
-The statistics are dumped in `.txt` files, they can be plotted using the `Python` script in the `demo` folder, which uses `matplotlib`.
+The statistics are dumped in `.txt` files, they can be plotted using the `Python` script with the name of the simulation stored in the `demo` folder, which uses `matplotlib`.
+
+[Screencast from 2025-02-13 12-00-27.webm](https://github.com/user-attachments/assets/9b5665ce-e167-495e-a6e5-ae1796642be3)
 
 ![fertility-alleles-stats](https://github.com/user-attachments/assets/2ebdf5cb-3557-453f-87b9-ffeb9b3b18f4)
 
