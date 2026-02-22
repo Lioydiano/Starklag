@@ -1,4 +1,5 @@
 #include "stats.cpp"
+#include <memory>
 #include <string.h>
 #include <thread>
 #ifdef _WIN32
@@ -67,14 +68,14 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     sista::Border border(
-        '#', ANSI::Settings(
-            ANSI::ForegroundColor::F_WHITE,
-            ANSI::BackgroundColor::B_BLACK,
-            ANSI::Attribute::BRIGHT
+        '#', sista::ANSISettings(
+            sista::ForegroundColor::WHITE,
+            sista::BackgroundColor::BLACK,
+            sista::Attribute::BRIGHT
         )
     );
     sista::Field field_(50, 30);
-    field_.reset();
+    field_.clear();
     field = &field_;
     sista::Cursor cursor;
 
@@ -93,16 +94,16 @@ int main(int argc, char* argv[]) {
                 (short unsigned)(random_engine() % 30),
                 (short unsigned)(random_engine() % 50)
             );
-            ANSI::ForegroundColor foreground_color = (ANSI::ForegroundColor)((random_engine() + rand()) % 8 + 30);
-            ANSI::BackgroundColor background_color = (ANSI::BackgroundColor)((random_engine() + rand()) % 8 + 40);
+            sista::ForegroundColor foreground_color = (sista::ForegroundColor)((random_engine() + rand()) % 8 + 30);
+            sista::BackgroundColor background_color = (sista::BackgroundColor)((random_engine() + rand()) % 8 + 40);
             if ((int)foreground_color == (int)background_color - 10) {
-                foreground_color = ANSI::ForegroundColor::F_WHITE;
-                background_color = ANSI::BackgroundColor::B_BLACK;
+                foreground_color = sista::ForegroundColor::WHITE;
+                background_color = sista::BackgroundColor::BLACK;
             }
-            ANSI::Settings settings(
+            sista::ANSISettings settings(
                 foreground_color,
                 background_color,
-                ANSI::Attribute::UNDERSCORE
+                sista::Attribute::UNDERSCORE
             );
             DNA* dna = new DNA();
             for (int j = 0; j < (int)(genes.size()); j++) {
@@ -113,7 +114,7 @@ int main(int argc, char* argv[]) {
             Statistics stats{0, 0, {nullptr, nullptr}, {}};
             organism = new Organism(symbol, coordinates, settings, dna, stats);
             sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-            field_.addPawn(pawn_);
+            field_.addPawn(std::shared_ptr<sista::Pawn>(pawn_, [](sista::Pawn*){}));
         }
         // Set default atmosphere
         globals::oxygen = Organism::organisms.size() * 100;
@@ -128,12 +129,12 @@ int main(int argc, char* argv[]) {
                     (short unsigned)(random_engine() % 30),
                     (short unsigned)(random_engine() % 50)
                 };
-                if (*field_.getPawnIterator(coordinates) == nullptr) {
+                if (field_.getPawn(coordinates) == nullptr) {
                     break;
                 }
             }
             food = new Food(coordinates);
-            field_.addPawn(food);
+            field_.addPawn(std::shared_ptr<sista::Pawn>(food, [](sista::Pawn*){}));
         }
     }
 
@@ -163,7 +164,7 @@ int main(int argc, char* argv[]) {
                         debug << "Organism " << organism << " (" << organism->id << ") is [already] dead with " << organism->health << " health and " << organism->left << " left at {" << organism->getCoordinates().y << ", " << organism->getCoordinates().x << "}" << std::endl;
                     #endif
                     sista::Coordinates coordinates = organism->getCoordinates();
-                    if (*field->getPawnIterator(coordinates) == organism)
+                    if (field->getPawn(coordinates) == organism)
                         field->removePawn(coordinates);
                     continue;
                 }
@@ -248,9 +249,9 @@ int main(int argc, char* argv[]) {
             Organism::dead_organisms.clear(); // I hope this doesn't cause a memory leak
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
             #if __linux__ or __APPLE__
-                ANSI::reset();
+                sista::resetAnsi();
                 sista::clearScreen();
-                ANSI::reset();
+                sista::resetAnsi();
                 field->print(border);
             #endif
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
@@ -267,20 +268,20 @@ int main(int argc, char* argv[]) {
                     continue;
                 }
                 // Output atmosphere stats
-                cursor.set({31, 5});
+                cursor.goTo({31, 5});
                 std::cout << "Oxygen: " << globals::oxygen << "   ";
                 std::cout << "Carbon dioxide: " << globals::carbon_dioxide << "   ";
                 // Output organisms stats
-                cursor.set({(short unsigned)o, 54});
+                cursor.goTo({(short unsigned)o, 54});
                 #if _WIN32
-                    ANSI::reset();
+                    sista::resetAnsi();
                     char void_[90] = {' '};
                     std::cout << void_;
-                    cursor.set({(short unsigned)o, 54});
+                    cursor.goTo({(short unsigned)o, 54});
                 #endif
                 std::cout << "Organism ";
                 organism->print();
-                ANSI::reset();
+                sista::resetAnsi();
                 std::cout << " " << organism->id << " (" << organism->stats.age << "): " << organism->health << "hp, " << organism->left << " left,";
                 std::cout << " DNA: ";
                 organism->dna->printInline();
@@ -294,9 +295,9 @@ int main(int argc, char* argv[]) {
             }
         }
         #if _WIN32
-            ANSI::reset();
+            sista::resetAnsi();
             sista::clearScreen();
-            ANSI::reset();
+            sista::resetAnsi();
             field->print(border);
         #endif
         if (!Organism::organisms.size()) {
@@ -339,7 +340,18 @@ void saveOrganisms() {
     std::ofstream organisms("organisms_set.sklg");
     for (Organism* organism : Organism::organisms) {
         // Format: id, symbol, foreground, background, ...
-        organisms << organism->id << ' ' << organism->getSymbol() << ' ' << organism->getSettings().foregroundColor << ' ' << organism->getSettings().backgroundColor << ' ';
+        // Extract integer codes for foreground/background (assume enums)
+        int fg = std::visit([](auto&& v)->int {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, sista::ForegroundColor>) return (int)v;
+            else return 0;
+        }, organism->getSettings().foregroundColor);
+        int bg = std::visit([](auto&& v)->int {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, sista::BackgroundColor>) return (int)v;
+            else return 0;
+        }, organism->getSettings().backgroundColor);
+        organisms << organism->id << ' ' << organism->getSymbol() << ' ' << fg << ' ' << bg << ' ';
         // ..., y, x, age, left, health, ...
         organisms << organism->getCoordinates().y << ' ' << organism->getCoordinates().x << ' ' << organism->stats.age << ' ' << organism->left << ' ' << organism->health << ' ';
         // ..., DNA
@@ -386,10 +398,10 @@ void loadOrganisms() {
         }
         Statistics void_stats{age, 0, {nullptr, nullptr}, {}};
         organism = new Organism(
-            symbol, coord, ANSI::Settings(
-                (ANSI::ForegroundColor)foreground,
-                (ANSI::BackgroundColor)background,
-                ANSI::Attribute::BRIGHT
+            symbol, coord, sista::ANSISettings(
+                (sista::ForegroundColor)foreground,
+                (sista::BackgroundColor)background,
+                sista::Attribute::BRIGHT
             ), dna, void_stats
         );
         organism->health = health;
@@ -397,7 +409,7 @@ void loadOrganisms() {
         organism->id = id;
         Organism::id_counter = id;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        field->addPawn(pawn_);
+        field->addPawn(std::shared_ptr<sista::Pawn>(pawn_, [](sista::Pawn*){}));
     }
 }
 
@@ -502,8 +514,8 @@ int freeSpacesAround(Organism* organism) {
         if (field->isOutOfBounds(coordinates)) {
             continue;
         }
-        std::vector<sista::Pawn*>::iterator pawn = field->getPawnIterator(coordinates);
-        if (*pawn == nullptr) {
+        sista::Pawn* pawn = field->getPawn(coordinates);
+        if (pawn == nullptr) {
             free_spaces++;
         }
     }

@@ -1,5 +1,6 @@
 #include "organism.hpp"
 #include "dna.cpp"
+#include <memory>
 #include <random>
 #include <chrono>
 #define DEBUG 1
@@ -17,19 +18,19 @@ namespace globals {
 };
 
 
-Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_):
+Entity::Entity(char symbol_, sista::Coordinates coordinates_, sista::ANSISettings settings_):
     sista::Pawn(symbol_, coordinates_, settings_) {
     is_food = false;
 }
-Entity::Entity(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, bool by_reference_):
-    sista::Pawn(symbol_, coordinates_, settings_, by_reference_) {
+Entity::Entity(char symbol_, sista::Coordinates coordinates_, sista::ANSISettings& settings_, bool by_reference_):
+    sista::Pawn(symbol_, coordinates_, settings_) {
     is_food = false;
 }
 Entity::~Entity() {}
 
 
 Food::Food(sista::Coordinates coordinates_):
-    Entity('@', coordinates_, ANSI::Settings(ANSI::ForegroundColor::F_GREEN, ANSI::BackgroundColor::B_BLACK, ANSI::Attribute::BRIGHT)) {
+    Entity('@', coordinates_, sista::ANSISettings()) {
     foods.push_back(this);
     is_food = true;
     energy = random_engine() % 10 + 1;
@@ -37,7 +38,7 @@ Food::Food(sista::Coordinates coordinates_):
 Food::~Food() {}
 
 
-Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings settings_, DNA* dna_, Statistics stats_):
+Organism::Organism(char symbol_, sista::Coordinates coordinates_, sista::ANSISettings settings_, DNA* dna_, Statistics stats_):
     Entity(symbol_, coordinates_, settings_), dna(dna_), stats(stats_) {
     Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
@@ -46,8 +47,8 @@ Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings
     this->id = id_counter++;
     stats.age = 0;
 }
-Organism::Organism(char symbol_, sista::Coordinates coordinates_, ANSI::Settings& settings_, DNA* dna_, Statistics stats_, bool by_reference_):
-    Entity(symbol_, coordinates_, settings_, by_reference_), dna(dna_), stats(stats_) {
+Organism::Organism(char symbol_, sista::Coordinates coordinates_, sista::ANSISettings& settings_, DNA* dna_, Statistics stats_, bool by_reference_):
+    Entity(symbol_, coordinates_, settings_), dna(dna_), stats(stats_) {
     Organism::organisms.push_back(this);
     health = dna->genes.at(Gene::STRENGTH)->value*10;
     left = dna->genes.at(Gene::LIFESPAN)->value;
@@ -235,7 +236,7 @@ void Organism::breed(Organism* other) {
         }
         if (found) {
             child->coordinates = new_coordinates;
-            field->addPawn((sista::Pawn*)child);
+            field->addPawn(std::shared_ptr<sista::Pawn>((sista::Pawn*)child, [](sista::Pawn*){}));
             continue;
         } else {
             #if DEBUG
