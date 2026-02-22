@@ -256,7 +256,7 @@ int main(int argc, char* argv[]) {
             for (int o = 0; o < (int)(Organism::organisms.size()); o++) {
                 void* organism_;
                 if (o > 100) {
-                    organism_ = &*Organism::organisms.back();
+                    organism_ = Organism::organisms.back();
                 } else
                     organism_ = Organism::organisms[o];
                 if (organism_ == nullptr) {
@@ -304,6 +304,14 @@ int main(int argc, char* argv[]) {
             break;
         }
     }
+    // Ensure the input thread has finished before we start cleaning up
+    if (input_thread.joinable()) {
+        input_thread.join();
+    }
+
+    // Clear field pointers so `Field` destructor won't double-delete objects
+    if (field) field->clear();
+
     for (Organism* organism : Organism::organisms) {
         delete organism;
     }
