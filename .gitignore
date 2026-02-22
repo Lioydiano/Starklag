@@ -34,3 +34,6 @@
 # Other
 .vscode/
 demo/*
+
+# Textual output files in the root directory
+*.txt
