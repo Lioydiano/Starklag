@@ -1,5 +1,5 @@
 #pragma once
-#include "include/sista/sista.hpp"
+#include <sista/sista.hpp>
 #include "dna.hpp"
 #include <fstream>
 
@@ -18,8 +18,8 @@ class Entity: public sista::Pawn {
 public:
     bool is_food;
 
-    Entity(char, sista::Coordinates, ANSI::Settings);
-    Entity(char, sista::Coordinates, ANSI::Settings&, bool);
+    Entity(char, sista::Coordinates, sista::ANSISettings);
+    Entity(char, sista::Coordinates, sista::ANSISettings&, bool);
     ~Entity();
 };
 
@@ -46,8 +46,8 @@ public:
     DNA* dna; // DNA of the organism
     Statistics stats;
 
-    Organism(char, sista::Coordinates, ANSI::Settings, DNA*, Statistics);
-    Organism(char, sista::Coordinates, ANSI::Settings&, DNA*, Statistics, bool);
+    Organism(char, sista::Coordinates, sista::ANSISettings, DNA*, Statistics);
+    Organism(char, sista::Coordinates, sista::ANSISettings&, DNA*, Statistics, bool);
     ~Organism();
 
     void move();
