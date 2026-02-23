@@ -1,4 +1,6 @@
 #include "organism.cpp"
+#include <memory>
+#include <type_traits>
 #ifdef _WIN32
     #include <windows.h>
 #endif
@@ -85,10 +87,10 @@ int main() {
     sista::Coordinates coordinates_(0, 0);
     sista::Cursor cursor_;
     sista::Border border_(
-        '#', ANSI::Settings(
-            ANSI::ForegroundColor::F_WHITE,
-            ANSI::BackgroundColor::B_BLACK,
-            ANSI::Attribute::BRIGHT
+        '#', sista::ANSISettings(
+            sista::ForegroundColor::WHITE,
+            sista::BackgroundColor::BLACK,
+            sista::Attribute::BRIGHT
         )
     );
     coordinates = &coordinates_;
@@ -99,7 +101,7 @@ int main() {
     field = &field_;
     loadOrganisms();
     while (true) {
-        cursor_.set(0, 0);
+        cursor_.goTo(0, 0);
         field->print(border_);
         coordinates_.y %= 30;
         coordinates_.x %= 50;
@@ -107,11 +109,11 @@ int main() {
         cursor_coordinates[1] = coordinates_;
         cursor_coordinates[0].x = 50;
         cursor_coordinates[1].y = 30;
-        cursor_.set(cursor_coordinates[0]);
+        cursor_.goTo(cursor_coordinates[0]);
         std::cout << "<";
-        cursor_.set(cursor_coordinates[1]);
+        cursor_.goTo(cursor_coordinates[1]);
         std::cout << "^";
-        cursor_.set(coordinates_);
+        cursor_.goTo(coordinates_);
         std::cout << SHOW_CURSOR;
         // std::cout << "X" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
@@ -120,7 +122,7 @@ int main() {
             char c = getchar();
         #endif
         if (actionFromChar(c)) {
-            cursor_.set(35, 10);
+            cursor_.goTo(35, 10);
             std::cout << "Exit? (y/n)" << std::flush;
             #if defined(_WIN32) or defined(__linux__)
                 char c = getch();
@@ -131,7 +133,7 @@ int main() {
                 sista::clearScreen();
                 continue;
             }
-            cursor_.set(35, 10);
+            cursor_.goTo(35, 10);
             std::cout << "Save? (y/n)" << std::flush;
             #if defined(_WIN32) or defined(__linux__)
                 c = getch();
@@ -145,7 +147,7 @@ int main() {
         }
         sista::clearScreen();
     }
-    field->reset();
+    field->clear();
 }
 
 
@@ -179,7 +181,7 @@ bool actionFromChar(char c) {
             newOrganism(coordinates);
             break;
         case 'c': // Print coordinates
-            cursor->set(35, 55);
+            cursor->goTo(35, 55);
             std::cout << "{" << coordinates->y << ", " << coordinates->x << "}" << std::flush;
             #if defined(_WIN32) or defined(__linux__)
                 getch();
@@ -194,7 +196,7 @@ bool actionFromChar(char c) {
 
 void printDNA(DNA* dna, unsigned int x) {
     for (Gene gene : genes) {
-        cursor->set(11 + (int)gene, x);
+        cursor->goTo(11 + (int)gene, x);
         std::cout << "\t";
         std::cout << gene_to_string[gene] << ": ";
         if (allele_to_string[gene].find(dna->genes[gene]->value) == allele_to_string[gene].end())
@@ -209,7 +211,7 @@ void geneticEditor(DNA* dna) {
     sista::clearScreen();
     printDNA(dna, 10);
     while (true) {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Edit gene (-1 to exit): ";
         int gene;
         std::cin >> gene;
@@ -223,10 +225,10 @@ void geneticEditor(DNA* dna) {
         Allele allele(gene_, dna->genes[gene_]->value);
         for (int i = 0; i < possible_random_allele_values[gene_].size(); i++) {
             allele = Allele(gene_, possible_random_allele_values[gene_][i]);
-            cursor->set(11 + gene + i, 50);
+            cursor->goTo(11 + gene + i, 50);
             std::cout << allele.value << ": " << allele_to_string[gene_][allele.value] << std::endl;
         }
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Edit gene \x1b[1m" << gene_to_string[gene_] << "\x1b[0m (42 to exit): ";
         int value;
         std::cin >> value;
@@ -249,7 +251,7 @@ void newOrganism(sista::Coordinates* coordinates) {
         }
     }
     if (organism != nullptr) {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Organism already exists on this coordinates" << std::endl;
         std::cout << "Try 'e' for editing it or 'r' for removing it" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
@@ -259,7 +261,7 @@ void newOrganism(sista::Coordinates* coordinates) {
         #endif
         return;
     } else {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Enter symbol: " << std::flush;
         char symbol;
         #if defined(_WIN32) or defined(__linux__)
@@ -267,11 +269,11 @@ void newOrganism(sista::Coordinates* coordinates) {
         #elif __APPLE__
             symbol = getchar();
         #endif
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Enter health:            " << std::flush;
         int health;
         std::cin >> health;
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Enter left:              " << std::flush;
         int left;
         std::cin >> left;
@@ -281,10 +283,10 @@ void newOrganism(sista::Coordinates* coordinates) {
             Allele allele(gene, 0);
             for (int i = 0; i < possible_random_allele_values[gene].size(); i++) {
                 allele = Allele(gene, possible_random_allele_values[gene][i]);
-                cursor->set(16 + gene + i, 20);
+                cursor->goTo(16 + gene + i, 20);
                 std::cout << allele.value << ": " << allele_to_string[gene][allele.value] << std::endl;
             }
-            cursor->set(35, 10);
+            cursor->goTo(35, 10);
             std::cout << "Enter gene \x1b[1m" << gene_to_string[gene] << "\x1b[0m: " << std::flush;
             int value;
             std::cin >> value;
@@ -292,16 +294,16 @@ void newOrganism(sista::Coordinates* coordinates) {
         }
         Statistics void_stats{0, 0, {nullptr, nullptr}, {}};
         organism = new Organism(
-            symbol, *coordinates, ANSI::Settings(
-                ANSI::ForegroundColor::F_WHITE,
-                ANSI::BackgroundColor::B_BLACK,
-                ANSI::Attribute::BRIGHT
+            symbol, *coordinates, sista::ANSISettings(
+                sista::ForegroundColor::WHITE,
+                sista::BackgroundColor::BLACK,
+                sista::Attribute::BRIGHT
             ), dna, void_stats
         );
         organism->health = health;
         organism->left = left;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        field->addPawn(pawn_);
+        field->addPawn(std::shared_ptr<sista::Pawn>(pawn_, [](sista::Pawn*){}));
     }
 }
 
@@ -315,7 +317,7 @@ void removeOrganism() {
         }
     }
     if (organism == nullptr) {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "No organism on this coordinates" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
             getch();
@@ -324,7 +326,7 @@ void removeOrganism() {
         #endif
         return;
     } else {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "Are you sure you want to remove this organism? (y/n)" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
             char c = getch();
@@ -349,7 +351,7 @@ void editOrganism() {
         }
     }
     if (organism == nullptr) {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "No organism on this coordinates" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
             getch();
@@ -366,17 +368,17 @@ void editOrganism() {
             #elif __APPLE__
                 action = getchar();
             #endif
-            cursor->set(35, 80);
+            cursor->goTo(35, 80);
             switch (action) {
                 case 'h': case 'H': { // Health
                     std::cout << "Health:        ";
-                    cursor->set(35, 88);
+                    cursor->goTo(35, 88);
                     std::cin >> organism->health;
                     break;
                 }
                 case 's': case 'S': { // Symbol
                     std::cout << "Symbol:        ";
-                    cursor->set(35, 88);
+                    cursor->goTo(35, 88);
                     #if defined(_WIN32) or defined(__linux__)
                         organism->setSymbol(getch());
                     #elif __APPLE__
@@ -386,7 +388,7 @@ void editOrganism() {
                 }
                 case 'l': case 'L': { // Left
                     std::cout << "Left:          ";
-                    cursor->set(35, 86);
+                    cursor->goTo(35, 86);
                     std::cin >> organism->left;
                     break;
                 }
@@ -413,7 +415,7 @@ void printOrganism(bool wait/*=true*/) {
         }
     }
     if (organism == nullptr) {
-        cursor->set(35, 10);
+        cursor->goTo(35, 10);
         std::cout << "No organism on this coordinates" << std::flush;
         #if defined(_WIN32) or defined(__linux__)
             getch();
@@ -422,20 +424,20 @@ void printOrganism(bool wait/*=true*/) {
         #endif
         return;
     } else {
-        ANSI::reset();
-        cursor->set(5, 55);
+        sista::resetAnsi();
+        cursor->goTo(5, 55);
         std::cout << "Organism: " << organism->id << "   ";
-        cursor->set(6, 55);
+        cursor->goTo(6, 55);
         std::cout << "Symbol: ";
         organism->print();
-        ANSI::reset();
-        cursor->set(7, 55);
+        sista::resetAnsi();
+        cursor->goTo(7, 55);
         std::cout << "Health: " << organism->health << "   ";
-        cursor->set(8, 55);
+        cursor->goTo(8, 55);
         std::cout << "Age: " << organism->stats.age << "   ";
-        cursor->set(9, 55);
+        cursor->goTo(9, 55);
         std::cout << "Left: " << organism->left << "   ";
-        cursor->set(11, 55);
+        cursor->goTo(11, 55);
         printDNA(organism->dna, 55);
         std::cout << std::flush;
         if (wait) {
@@ -453,7 +455,17 @@ void saveOrganisms() {
     std::ofstream organisms("organisms_set.sklg");
     for (Organism* organism : Organism::organisms) {
         // Format: id, symbol, foreground, background, ...
-        organisms << organism->id << ' ' << organism->getSymbol() << ' ' << organism->getSettings().foregroundColor << ' ' << organism->getSettings().backgroundColor << ' ';
+        int fg = std::visit([](auto&& v)->int {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, sista::ForegroundColor>) return (int)v;
+            else return 0;
+        }, organism->getSettings().foregroundColor);
+        int bg = std::visit([](auto&& v)->int {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, sista::BackgroundColor>) return (int)v;
+            else return 0;
+        }, organism->getSettings().backgroundColor);
+        organisms << organism->id << ' ' << organism->getSymbol() << ' ' << fg << ' ' << bg << ' ';
         // ..., y, x, age, left, health, ...
         organisms << organism->getCoordinates().y << ' ' << organism->getCoordinates().x << ' ' << organism->stats.age << ' ' << organism->left << ' ' << organism->health << ' ';
         // ..., DNA
@@ -495,10 +507,10 @@ void loadOrganisms() {
         }
         Statistics void_stats{age, 0, {nullptr, nullptr}, {}};
         organism = new Organism(
-            symbol, coord, ANSI::Settings(
-                (ANSI::ForegroundColor)foreground,
-                (ANSI::BackgroundColor)background,
-                ANSI::Attribute::BRIGHT
+            symbol, coord, sista::ANSISettings(
+                (sista::ForegroundColor)foreground,
+                (sista::BackgroundColor)background,
+                sista::Attribute::BRIGHT
             ), dna, void_stats
         );
         organism->health = health;
@@ -506,6 +518,6 @@ void loadOrganisms() {
         organism->id = id;
         Organism::id_counter = id;
         sista::Pawn* pawn_ = (sista::Pawn*)(Entity*)organism;
-        field->addPawn(pawn_);
+        field->addPawn(std::shared_ptr<sista::Pawn>(pawn_, [](sista::Pawn*){}));
     }
 }
